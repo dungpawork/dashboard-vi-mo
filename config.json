@@ -157,9 +157,16 @@
       "id": "batdongsan",
       "name": "Chính sách Tài khóa",
       "topics": [
-        "bất động sản",
-        "nhà đất",
-        "chung cư"
+        "Chính sách Tài khóa",
+        "tài khóa",
+        "thuế",
+        "tăng thuế, giảm thuế",
+        "ngân sách",
+        "đầu tư công",
+        "giải ngân đầu tư công",
+        "thâm hụt ngân sách nhà nước",
+        "thặng dư ngân sách nhà nước",
+        "phát hành trái phiếu chính phủ"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
