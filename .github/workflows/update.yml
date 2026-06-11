@@ -34,6 +34,11 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add data.json
-          git commit -m "Cap nhat tin tu dong" || echo "Khong co tin moi"
-          git pull --rebase origin main
-          git push
+          git commit -m "Cap nhat tin tu dong" || echo "Khong co thay doi"
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash origin main && git push && exit 0
+            echo "Push chua duoc, thu lai lan $i..."
+            sleep 5
+          done
+          echo "Khong push duoc sau nhieu lan thu"
+          exit 1
