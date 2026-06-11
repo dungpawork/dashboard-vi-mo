@@ -3,79 +3,132 @@
     {
       "id": "gdp",
       "name": "GDP & Tăng trưởng",
-      "topics": ["GDP", "tăng trưởng", "tổng sản phẩm"],
+      "topics": [
+        "GDP",
+        "tăng trưởng kinh tế",
+        "tổng sản phẩm quốc nội",
+        "sản xuất công nghiệp IIP",
+        "chỉ số PMI",
+        "chỉ số bán lẻ hàng hóa và dịch vụ"
+      ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
         "CafeF": "https://cafef.vn/trang-chu.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tăng trưởng kinh tế trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
-      "update_hours": [6, 14]
+      "update_hours": [
+        6,
+        14
+      ]
     },
     {
       "id": "lamphat",
       "name": "Lạm phát",
-      "topics": ["lạm phát", "CPI", "giá tiêu dùng"],
+      "topics": [
+        "lạm phát",
+        "CPI",
+        "giá tiêu dùng"
+      ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
         "CafeF": "https://cafef.vn/trang-chu.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lạm phát trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
-      "update_hours": [7, 15]
+      "update_hours": [
+        7,
+        15
+      ]
     },
     {
       "id": "laisuat",
       "name": "Lãi suất",
-      "topics": ["lãi suất", "điều hành lãi suất"],
+      "topics": [
+        "lãi suất",
+        "điều hành lãi suất"
+      ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
         "CafeF": "https://cafef.vn/trang-chu.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lãi suất trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
-      "update_hours": [8, 16]
+      "update_hours": [
+        8,
+        16
+      ]
     },
     {
       "id": "tygia",
       "name": "Tỷ giá",
-      "topics": ["tỷ giá", "USD", "ngoại hối", "đô la"],
+      "topics": [
+        "tỷ giá",
+        "USD",
+        "ngoại hối",
+        "đô la"
+      ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
         "CafeF": "https://cafef.vn/trang-chu.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tỷ giá trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
-      "update_hours": [9, 17]
+      "update_hours": [
+        9,
+        17
+      ]
     },
     {
       "id": "chungkhoan",
       "name": "Chứng khoán",
-      "topics": ["chứng khoán", "VN-Index", "cổ phiếu"],
+      "topics": [
+        "chứng khoán",
+        "VN-Index",
+        "cổ phiếu"
+      ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
         "CafeF": "https://cafef.vn/trang-chu.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về thị trường chứng khoán trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
-      "update_hours": [10, 18]
+      "update_hours": [
+        10,
+        18
+      ]
     },
     {
       "id": "batdongsan",
       "name": "Bất động sản",
-      "topics": ["bất động sản", "nhà đất", "chung cư"],
+      "topics": [
+        "bất động sản",
+        "nhà đất",
+        "chung cư"
+      ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
         "CafeF": "https://cafef.vn/trang-chu.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về bất động sản trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
-      "update_hours": [11, 19]
+      "update_hours": [
+        11,
+        19
+      ]
     },
     {
       "id": "taikhoa",
       "name": "Chính sách Tài khóa",
-      "topics": ["tài khóa", "thuế", "ngân sách", "đầu tư công"],
+      "topics": [
+        "tài khóa",
+        "thuế",
+        "ngân sách",
+        "đầu tư công"
+      ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
         "CafeF": "https://cafef.vn/trang-chu.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về chính sách tài khóa trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
-      "update_hours": [12, 20]
+      "update_hours": [
+        12,
+        20
+      ]
     }
   ]
 }
