@@ -13,6 +13,8 @@ Biến môi trường: GEMINI_API_KEY (bắt buộc), FORCE_ALL ("true" = chạy
 """
 
 import os
+import re
+import html
 import time
 import json
 import hashlib
@@ -77,6 +79,16 @@ def make_id(link):
 def matches_keywords(text, keywords):
     t = (text or "").lower()
     return any((k or "").lower() in t for k in keywords)
+
+
+def clean_excerpt(text, maxlen=600):
+    """Làm sạch đoạn sapo/tóm lược từ RSS: bỏ thẻ HTML, gọn khoảng trắng, cắt ngắn."""
+    if not text:
+        return "(Không có nội dung tóm lược)"
+    t = re.sub(r"<[^>]+>", " ", text)     # bỏ thẻ HTML
+    t = html.unescape(t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return (t[:maxlen] + "…") if len(t) > maxlen else (t or "(Không có nội dung tóm lược)")
 
 
 def get_full_text(link, fallback=""):
@@ -199,31 +211,54 @@ def main():
     print(f"Có {len(candidates)} bài mới khớp từ khóa để xử lý.")
 
     added = 0
+    added_ai = 0
+    added_excerpt = 0
+    ai_available = True
     for art in candidates:
-        full_text = get_full_text(art["link"], fallback=art["rss_summary"])
-        result = analyze(api_key, model, instructions, active, art["title"], full_text)
-        if not result["ok"]:
-            print(f"Dừng vì lỗi ({result.get('kind')}): {str(result.get('error'))[:120]}")
-            break
-        bid = name_to_id.get(result["block"], art["fallback_id"])
-        bdata = blocks_data.setdefault(bid, {"articles": []})
+        if ai_available:
+            full_text = get_full_text(art["link"], fallback=art["rss_summary"])
+            result = analyze(api_key, model, instructions, active, art["title"], full_text)
+            if result["ok"]:
+                bid = name_to_id.get(result["block"], art["fallback_id"])
+                summary = result["summary"]
+                impact = result["impact"]
+                by_ai = True
+            else:
+                # AI hết lượt hoặc lỗi -> dừng gọi AI, chuyển sang dùng sapo cho phần còn lại
+                print(f"AI không dùng được ({result.get('kind')}): "
+                      f"{str(result.get('error'))[:100]}")
+                print("→ Chuyển sang chế độ SAPO (không AI) cho các bài còn lại.")
+                ai_available = False
+
+        if not ai_available:
+            bid = art["fallback_id"]          # phân loại theo từ khóa đã khớp
+            summary = clean_excerpt(art["rss_summary"])
+            impact = "Trung lập"
+            by_ai = False
+
         block_name = next((b["name"] for b in active if b["id"] == bid), bid)
+        bdata = blocks_data.setdefault(bid, {"articles": []})
         bdata.setdefault("articles", []).insert(0, {
             "id": art["id"], "title": art["title"], "source": art["source"],
             "link": art["link"], "published": art["published"],
-            "summary": result["summary"], "topic": block_name,
-            "impact": result["impact"],
+            "summary": summary, "topic": block_name, "impact": impact,
+            "ai": by_ai,
             "created_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
         })
         bdata["articles"] = bdata["articles"][:MAX_STORE_PER_BLOCK]
         bdata["name"] = block_name
         bdata["updated_at"] = datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M")
         added += 1
-        print(f"  + [{block_name}] {art['title'][:50]}")
-        time.sleep(REQUEST_DELAY_SEC)
+        if by_ai:
+            added_ai += 1
+            time.sleep(REQUEST_DELAY_SEC)
+        else:
+            added_excerpt += 1
+        tag = "AI" if by_ai else "sapo"
+        print(f"  + [{block_name}] ({tag}) {art['title'][:48]}")
 
     save_data(blocks_data)
-    print(f"Xong. Thêm {added} tin.")
+    print(f"Xong. Thêm {added} tin ({added_ai} qua AI, {added_excerpt} dùng sapo).")
 
 
 if __name__ == "__main__":

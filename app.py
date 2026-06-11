@@ -148,8 +148,11 @@ if page == "📊 Tin tức":
                     st.caption("_Chưa có tin._")
                 for a in arts:
                     st.markdown(f"**[{a.get('title','')}]({a.get('link','')})**")
-                    st.markdown(f"{impact_label(a.get('impact') or 'Trung lập')}  ·  "
-                                f"📰 {a.get('source','')}")
+                    if a.get("ai", True):
+                        badge = impact_label(a.get('impact') or 'Trung lập')
+                    else:
+                        badge = ":orange[● Tin nhanh (chưa qua AI)]"
+                    st.markdown(f"{badge}  ·  📰 {a.get('source','')}")
                     if a.get("summary"):
                         st.caption(a["summary"])
                     st.divider()
