@@ -189,12 +189,20 @@
     },
     {
       "id": "taikhoa",
-      "name": "Chính sách Tài khóa",
+      "name": "Tỷ giá",
       "topics": [
-        "tài khóa",
-        "thuế",
-        "ngân sách",
-        "đầu tư công"
+        "tỷ giá",
+        "USDVND",
+        "ngân hàng thương mại bán ra",
+        "tỷ giá tự do",
+        "tỷ giá chợ đen",
+        "FED",
+        "FED FUND RATE",
+        "DXY",
+        "sức mạnh đồng dollar",
+        "cán cân thương mại",
+        "cán cân vốn",
+        "dự trữ ngoại hối"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
