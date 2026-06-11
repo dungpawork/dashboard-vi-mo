@@ -1,5 +1,5 @@
 {
-  "model": "gemini-2.5-flash",
+  "model": "gemini-1.5-flash",
   "prompt_instructions": "Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt CỐT LÕI của bài trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, tập trung nêu rõ các con số, số liệu cụ thể nếu bài có.\nViết dạng bullet point, ngôn ngữ chuyên nghiệp, lịch sự.",
   "blocks": [
     {
