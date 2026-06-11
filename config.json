@@ -92,18 +92,24 @@
     },
     {
       "id": "tygia",
-      "name": "Tỷ giá",
+      "name": "Thị trường 2 - Liên ngân hàng",
       "topics": [
-        "tỷ giá",
-        "USD",
-        "ngoại hối",
-        "đô la"
+        "lãi suất liên ngân hàng",
+        "lãi suất qua đêm"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-        "CafeF": "https://cafef.vn/trang-chu.rss"
+        "CafeF": "https://cafef.vn/trang-chu.rss",
+        "Báo Đầu Tư (Cơ quan của Bộ KH&ĐT)": "https://baodautu.vn/thoi-su-dau-tu.rss",
+        "VnEconomy (Thời báo Kinh tế VN)": "https://vneconomy.vn/rss/kinh-te-vi-mo.rss",
+        "VietNamNet (Báo chính thống uy tín)": "https://vietnamnet.vn/rss/kinh-doanh.rss",
+        "Báo Đầu Tư (Bộ KH&ĐT)": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
+        "VnEconomy (Thời báo Kinh tế)": "https://vneconomy.vn/rss/tai-chinh-ngan-hang.rss",
+        "CafeF (Kênh dữ liệu lớn)": "https://cafef.vn/tai-chinh-ngan-hang.rss",
+        "Báo Tuổi Trẻ": "https://tuoitre.vn/rss/kinh-doanh.rss",
+        "Báo Thanh Niên": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tỷ giá trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lãi suất liên ngân hàng trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         9,
         17
