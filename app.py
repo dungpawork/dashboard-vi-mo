@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-DASHBOARD TIN TỨC KINH TẾ — viewer + trang Cấu hình (admin)
------------------------------------------------------------
-- Hiển thị data.json (do robot fetch.py cập nhật).
-- Trang "Cấu hình" có MẬT KHẨU: sửa nguồn RSS / TOPICS / prompt,
-  rồi GHI config.json lên GitHub để robot dùng cho lần chạy sau.
+DASHBOARD TIN TỨC KINH TẾ — nhiều block + trang Cấu hình (admin)
+----------------------------------------------------------------
+- Trang Tin tức: hiển thị từng block theo lưới, mỗi block là một chủ đề.
+- Trang Cấu hình (mật khẩu): thêm/bớt block; mỗi block chỉnh tên, từ khóa,
+  nguồn RSS, prompt, giờ cập nhật. Lưu sẽ ghi config.json lên GitHub.
 
-Cần các Secrets (ở Streamlit Cloud) cho phần cấu hình:
-  ADMIN_PASSWORD = "..."
-  GH_TOKEN       = "ghp_..."          (GitHub token có quyền repo)
-  GH_REPO        = "tendangnhap/dashboard-kinh-te"
+Secrets cần cho phần Cấu hình:
+  ADMIN_PASSWORD, GH_TOKEN, GH_REPO  (vd "tendangnhap/dashboard-kinh-te")
 """
 
 import os
 import json
 import base64
+import uuid
 
 import requests
 import streamlit as st
@@ -22,19 +21,8 @@ import streamlit as st
 CONFIG_FILE = "config.json"
 DATA_FILE = "data.json"
 IMPACTS = ["Tích cực", "Tiêu cực", "Trung lập"]
-
-DEFAULT_CONFIG = {
-    "rss_feeds": {
-        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-        "CafeF": "https://cafef.vn/trang-chu.rss",
-    },
-    "topics": ["GDP & Tăng trưởng", "Lạm phát", "Lãi suất", "Tỷ giá",
-               "Chứng khoán", "Bất động sản", "Xuất nhập khẩu",
-               "Doanh nghiệp", "Chính sách tiền tệ", "Khác"],
-    "prompt_instructions": ("Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt "
-                            "CỐT LÕI của bài trong 5 đến 10 câu ngắn gọn bằng tiếng "
-                            "Việt, tập trung nêu rõ các con số nếu bài có."),
-}
+DEFAULT_PROMPT = "Tóm tắt CỐT LÕI bài viết trong 5 đến 10 câu, nêu rõ số liệu nếu có."
+COLS_PER_ROW = 2
 
 
 # ---------------- Đọc dữ liệu & cấu hình ----------------
@@ -44,29 +32,22 @@ def load_data():
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 d = json.load(f)
-            return d.get("articles", []), d.get("updated_at", "")
+            return d.get("blocks", {}), d.get("updated_at", "")
         except Exception:
-            return [], ""
-    return [], ""
+            return {}, ""
+    return {}, ""
 
 
-def load_config():
-    # Trong phiên làm việc, ưu tiên cấu hình vừa lưu (nếu có).
-    if "live_config" in st.session_state:
-        return st.session_state["live_config"]
+def load_blocks():
+    if "live_blocks" in st.session_state:
+        return st.session_state["live_blocks"]
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                c = json.load(f)
-            return {
-                "rss_feeds": c.get("rss_feeds", DEFAULT_CONFIG["rss_feeds"]),
-                "topics": c.get("topics", DEFAULT_CONFIG["topics"]),
-                "prompt_instructions": c.get("prompt_instructions",
-                                             DEFAULT_CONFIG["prompt_instructions"]),
-            }
+                return json.load(f).get("blocks", [])
         except Exception:
             pass
-    return dict(DEFAULT_CONFIG)
+    return []
 
 
 def get_secret(name):
@@ -76,18 +57,14 @@ def get_secret(name):
         return ""
 
 
-def github_save_config(config_dict):
-    """Ghi config.json lên GitHub. Trả về (thành công, thông báo)."""
-    token = get_secret("GH_TOKEN")
-    repo = get_secret("GH_REPO")
+def github_save(blocks):
+    token, repo = get_secret("GH_TOKEN"), get_secret("GH_REPO")
     if not token or not repo:
         return False, "Chưa khai báo GH_TOKEN / GH_REPO trong Secrets."
-
     api = f"https://api.github.com/repos/{repo}/contents/{CONFIG_FILE}"
     headers = {"Authorization": f"Bearer {token}",
                "Accept": "application/vnd.github+json"}
-    content_str = json.dumps(config_dict, ensure_ascii=False, indent=2)
-
+    content_str = json.dumps({"blocks": blocks}, ensure_ascii=False, indent=2)
     sha = None
     try:
         r = requests.get(api, headers=headers, timeout=20)
@@ -95,11 +72,8 @@ def github_save_config(config_dict):
             sha = r.json().get("sha")
     except Exception as e:
         return False, f"Không kết nối được GitHub: {e}"
-
-    body = {
-        "message": "Cap nhat cau hinh tu dashboard",
-        "content": base64.b64encode(content_str.encode("utf-8")).decode("ascii"),
-    }
+    body = {"message": "Cap nhat cau hinh block",
+            "content": base64.b64encode(content_str.encode("utf-8")).decode("ascii")}
     if sha:
         body["sha"] = sha
     try:
@@ -123,61 +97,60 @@ def impact_label(impact):
 
 st.set_page_config(page_title="Dashboard Kinh tế", page_icon="📊", layout="wide")
 
-cfg = load_config()
-articles, updated_at = load_data()
+blocks = load_blocks()
+blocks_data, updated_at = load_data()
 
 page = st.sidebar.radio("Trang", ["📊 Tin tức", "⚙️ Cấu hình"])
 
+# ============================ TRANG TIN TỨC ============================
 if page == "📊 Tin tức":
     st.title("📊 Dashboard tin tức kinh tế")
     with st.sidebar:
         if updated_at:
-            st.caption(f"Cập nhật lần cuối: **{updated_at}** (giờ VN)")
-        st.caption(f"Đang lưu **{len(articles)}** tin")
+            st.caption(f"Cập nhật gần nhất: **{updated_at}** (giờ VN)")
         if st.button("🔄 Tải lại trang", use_container_width=True):
             st.rerun()
 
-    if not articles:
-        st.info("Chưa có dữ liệu. Chạy **Run workflow** trong tab Actions trên "
-                "GitHub để lấy tin lần đầu, rồi tải lại trang.")
+    if not blocks:
+        st.info("Chưa có block nào. Vào trang **Cấu hình** để tạo block.")
     else:
-        topics = cfg["topics"]
-        c1, c2, c3 = st.columns([1, 1, 2])
-        with c1:
-            topic_filter = st.selectbox("Lọc theo chủ đề", ["Tất cả"] + topics)
-        with c2:
-            impact_filter = st.selectbox("Lọc theo tác động", ["Tất cả"] + IMPACTS)
-        with c3:
-            keyword = st.text_input("Tìm theo từ khóa (trong tiêu đề)")
+        # Lọc nhanh theo tác động (áp dụng cho mọi block)
+        impact_filter = st.selectbox("Lọc theo tác động", ["Tất cả"] + IMPACTS)
 
-        shown = articles
-        if topic_filter != "Tất cả":
-            shown = [a for a in shown if a.get("topic") == topic_filter]
-        if impact_filter != "Tất cả":
-            shown = [a for a in shown if (a.get("impact") or "Trung lập") == impact_filter]
-        if keyword:
-            kw = keyword.lower()
-            shown = [a for a in shown if kw in a.get("title", "").lower()]
+        for i in range(0, len(blocks), COLS_PER_ROW):
+            row_blocks = blocks[i:i + COLS_PER_ROW]
+            cols = st.columns(len(row_blocks))
+            for col, block in zip(cols, row_blocks):
+                with col:
+                    bid = block.get("id")
+                    bdata = blocks_data.get(bid, {})
+                    arts = bdata.get("articles", [])
+                    if impact_filter != "Tất cả":
+                        arts = [a for a in arts
+                                if (a.get("impact") or "Trung lập") == impact_filter]
+                    with st.container(border=True, height=460):
+                        st.markdown(f"#### {block.get('name', bid)}")
+                        upd = bdata.get("updated_at")
+                        st.caption(f"{len(arts)} tin"
+                                   + (f" · cập nhật {upd}" if upd else ""))
+                        if not arts:
+                            st.caption("_Chưa có tin._")
+                        for a in arts:
+                            st.markdown(f"**[{a.get('title','')}]({a.get('link','')})**")
+                            st.markdown(
+                                f"{impact_label(a.get('impact') or 'Trung lập')}  ·  "
+                                f"📰 {a.get('source','')}")
+                            if a.get("summary"):
+                                st.caption(a["summary"])
+                            st.divider()
 
-        st.write(f"**{len(shown)}** tin")
-        for a in shown:
-            with st.container(border=True):
-                st.markdown(f"### [{a.get('title','')}]({a.get('link','')})")
-                meta = (f"{impact_label(a.get('impact') or 'Trung lập')}  ·  "
-                        f"🏷️ **{a.get('topic','')}**  ·  📰 {a.get('source','')}")
-                if a.get("published"):
-                    meta += f"  ·  🕒 {a['published']}"
-                st.markdown(meta)
-                if a.get("summary"):
-                    st.write(a["summary"])
-
-else:  # ===================== TRANG CẤU HÌNH =====================
-    st.title("⚙️ Cấu hình")
+# ============================ TRANG CẤU HÌNH ============================
+else:
+    st.title("⚙️ Cấu hình các block")
 
     admin_pw = get_secret("ADMIN_PASSWORD")
     if not admin_pw:
-        st.warning("Chưa đặt ADMIN_PASSWORD trong Secrets nên trang này đang khóa. "
-                   "Xem hướng dẫn để bật tính năng chỉnh sửa.")
+        st.warning("Chưa đặt ADMIN_PASSWORD trong Secrets nên trang này đang khóa.")
         st.stop()
 
     if not st.session_state.get("is_admin"):
@@ -190,52 +163,78 @@ else:  # ===================== TRANG CẤU HÌNH =====================
                 st.error("Sai mật khẩu.")
         st.stop()
 
-    st.success("Đã mở khóa. Sửa xong nhớ bấm **Lưu cấu hình**.")
+    # Nạp bản nháp các block vào session (chỉ lần đầu)
+    if "draft" not in st.session_state:
+        st.session_state["draft"] = [dict(b) for b in blocks]
 
-    # --- Nguồn RSS ---
-    st.subheader("Nguồn RSS")
-    st.caption("Thêm dòng mới hoặc xóa dòng tùy ý. Mỗi nguồn gồm tên và link RSS.")
-    rss_rows = [{"Tên nguồn": k, "Link RSS": v} for k, v in cfg["rss_feeds"].items()]
-    edited_rss = st.data_editor(rss_rows, num_rows="dynamic", use_container_width=True,
-                                key="rss_editor")
+    st.success("Đã mở khóa. Chỉnh xong nhớ bấm **Lưu tất cả** ở cuối trang.")
 
-    # --- TOPICS ---
-    st.subheader("Danh sách chủ đề (TOPICS)")
-    st.caption("Mỗi chủ đề một dòng. Nên giữ lại 'Khác' để chứa tin chưa phân loại.")
-    topics_text = st.text_area("Chủ đề", value="\n".join(cfg["topics"]), height=220)
+    if st.button("➕ Thêm block mới"):
+        st.session_state["draft"].append({
+            "id": "blk_" + uuid.uuid4().hex[:6],
+            "name": "Block mới", "topics": [], "rss_feeds": {},
+            "prompt_instructions": DEFAULT_PROMPT, "update_hours": [7],
+        })
+        st.rerun()
 
-    # --- Prompt ---
-    st.subheader("Hướng dẫn cho AI (prompt)")
-    st.caption("Phần này điều khiển cách AI tóm tắt. Hệ thống sẽ tự thêm yêu cầu "
-               "phân loại chủ đề, đánh giá tác động và trả về JSON, nên bạn chỉ cần "
-               "tập trung mô tả cách tóm tắt mong muốn.")
-    prompt_text = st.text_area("Prompt", value=cfg["prompt_instructions"], height=160)
+    rss_edits = {}   # id -> dữ liệu bảng RSS đã sửa
+    for blk in st.session_state["draft"]:
+        bid = blk["id"]
+        title = st.session_state.get(f"name_{bid}", blk.get("name", "(block)"))
+        with st.expander(f"📦 {title}", expanded=False):
+            st.text_input("Tên block", value=blk.get("name", ""), key=f"name_{bid}")
 
-    if st.button("💾 Lưu cấu hình", type="primary"):
-        # Gom RSS từ bảng (bỏ dòng trống)
-        new_rss = {}
-        for row in edited_rss:
-            name = (row.get("Tên nguồn") or "").strip()
-            link = (row.get("Link RSS") or "").strip()
-            if name and link:
-                new_rss[name] = link
-        # Gom topics
-        new_topics = [t.strip() for t in topics_text.splitlines() if t.strip()]
-        if "Khác" not in new_topics:
-            new_topics.append("Khác")
+            st.text_area("Từ khóa của block (mỗi dòng một từ)",
+                         value="\n".join(blk.get("topics", [])),
+                         key=f"topics_{bid}", height=120,
+                         help="Chỉ bài có chứa một trong các từ khóa này mới vào block.")
 
-        new_config = {
-            "rss_feeds": new_rss,
-            "topics": new_topics,
-            "prompt_instructions": prompt_text.strip() or DEFAULT_CONFIG["prompt_instructions"],
-        }
+            st.caption("Nguồn RSS (thêm dòng mới hoặc xóa dòng):")
+            rss_rows = [{"Tên nguồn": k, "Link RSS": v}
+                        for k, v in blk.get("rss_feeds", {}).items()]
+            rss_edits[bid] = st.data_editor(rss_rows, num_rows="dynamic",
+                                            use_container_width=True, key=f"rss_{bid}")
 
-        if not new_rss:
-            st.error("Cần ít nhất một nguồn RSS.")
+            st.text_area("Prompt cho AI", value=blk.get("prompt_instructions", DEFAULT_PROMPT),
+                         key=f"prompt_{bid}", height=120)
+
+            st.multiselect("Giờ cập nhật (giờ Việt Nam)", options=list(range(24)),
+                           default=blk.get("update_hours", []),
+                           format_func=lambda h: f"{h}h", key=f"hours_{bid}",
+                           help="Block chỉ cập nhật vào những giờ này, giúp trải đều quota.")
+
+            if st.button("🗑️ Xóa block này", key=f"del_{bid}"):
+                st.session_state["draft"] = [b for b in st.session_state["draft"]
+                                             if b["id"] != bid]
+                st.rerun()
+
+    st.markdown("---")
+    if st.button("💾 Lưu tất cả", type="primary"):
+        new_blocks = []
+        for blk in st.session_state["draft"]:
+            bid = blk["id"]
+            name = (st.session_state.get(f"name_{bid}", "") or "").strip()
+            topics = [t.strip() for t in
+                      st.session_state.get(f"topics_{bid}", "").splitlines() if t.strip()]
+            rss = {}
+            for row in rss_edits.get(bid, []):
+                n = (row.get("Tên nguồn") or "").strip()
+                l = (row.get("Link RSS") or "").strip()
+                if n and l:
+                    rss[n] = l
+            prompt = (st.session_state.get(f"prompt_{bid}", "") or "").strip() or DEFAULT_PROMPT
+            hours = sorted(st.session_state.get(f"hours_{bid}", []))
+            if name and rss:
+                new_blocks.append({"id": bid, "name": name, "topics": topics,
+                                   "rss_feeds": rss, "prompt_instructions": prompt,
+                                   "update_hours": hours})
+        if not new_blocks:
+            st.error("Cần ít nhất một block có tên và có nguồn RSS.")
         else:
-            ok, msg = github_save_config(new_config)
+            ok, msg = github_save(new_blocks)
             if ok:
-                st.session_state["live_config"] = new_config
+                st.session_state["live_blocks"] = new_blocks
+                st.session_state["draft"] = [dict(b) for b in new_blocks]
                 st.success(msg + " Robot sẽ dùng cấu hình mới từ lần chạy kế tiếp.")
             else:
                 st.error(msg)

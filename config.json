@@ -1,22 +1,81 @@
 {
-  "rss_feeds": {
-    "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-    "CafeF": "https://cafef.vn/trang-chu.rss",
-    "VietnamBiz - Kinh tế": "https://vietnambiz.vn/kinh-te.rss",
-    "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
-    "Báo Đầu tư": "https://baodautu.vn/rss/home.rss"
-  },
-  "topics": [
-    "GDP & Tăng trưởng",
-    "Lạm phát",
-    "Lãi suất",
-    "Tỷ giá",
-    "Chứng khoán",
-    "Bất động sản",
-    "Xuất nhập khẩu",
-    "Doanh nghiệp",
-    "Chính sách tiền tệ",
-    "Khác"
-  ],
-  "prompt_instructions": "Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt CỐT LÕI của bài trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, tập trung nêu rõ các con số, số liệu cụ thể nếu bài có."
+  "blocks": [
+    {
+      "id": "gdp",
+      "name": "GDP & Tăng trưởng",
+      "topics": ["GDP", "tăng trưởng", "tổng sản phẩm"],
+      "rss_feeds": {
+        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
+        "CafeF": "https://cafef.vn/trang-chu.rss"
+      },
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tăng trưởng kinh tế trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "update_hours": [6, 14]
+    },
+    {
+      "id": "lamphat",
+      "name": "Lạm phát",
+      "topics": ["lạm phát", "CPI", "giá tiêu dùng"],
+      "rss_feeds": {
+        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
+        "CafeF": "https://cafef.vn/trang-chu.rss"
+      },
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lạm phát trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "update_hours": [7, 15]
+    },
+    {
+      "id": "laisuat",
+      "name": "Lãi suất",
+      "topics": ["lãi suất", "điều hành lãi suất"],
+      "rss_feeds": {
+        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
+        "CafeF": "https://cafef.vn/trang-chu.rss"
+      },
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lãi suất trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "update_hours": [8, 16]
+    },
+    {
+      "id": "tygia",
+      "name": "Tỷ giá",
+      "topics": ["tỷ giá", "USD", "ngoại hối", "đô la"],
+      "rss_feeds": {
+        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
+        "CafeF": "https://cafef.vn/trang-chu.rss"
+      },
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tỷ giá trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "update_hours": [9, 17]
+    },
+    {
+      "id": "chungkhoan",
+      "name": "Chứng khoán",
+      "topics": ["chứng khoán", "VN-Index", "cổ phiếu"],
+      "rss_feeds": {
+        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
+        "CafeF": "https://cafef.vn/trang-chu.rss"
+      },
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về thị trường chứng khoán trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "update_hours": [10, 18]
+    },
+    {
+      "id": "batdongsan",
+      "name": "Bất động sản",
+      "topics": ["bất động sản", "nhà đất", "chung cư"],
+      "rss_feeds": {
+        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
+        "CafeF": "https://cafef.vn/trang-chu.rss"
+      },
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về bất động sản trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "update_hours": [11, 19]
+    },
+    {
+      "id": "taikhoa",
+      "name": "Chính sách Tài khóa",
+      "topics": ["tài khóa", "thuế", "ngân sách", "đầu tư công"],
+      "rss_feeds": {
+        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
+        "CafeF": "https://cafef.vn/trang-chu.rss"
+      },
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về chính sách tài khóa trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "update_hours": [12, 20]
+    }
+  ]
 }
