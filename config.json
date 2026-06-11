@@ -116,24 +116,6 @@
       ]
     },
     {
-      "id": "chungkhoan",
-      "name": "Chứng khoán",
-      "topics": [
-        "chứng khoán",
-        "VN-Index",
-        "cổ phiếu"
-      ],
-      "rss_feeds": {
-        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-        "CafeF": "https://cafef.vn/trang-chu.rss"
-      },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về thị trường chứng khoán trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
-      "update_hours": [
-        10,
-        18
-      ]
-    },
-    {
       "id": "batdongsan",
       "name": "Bất động sản",
       "topics": [
