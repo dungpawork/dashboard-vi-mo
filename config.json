@@ -98,12 +98,11 @@
     },
     {
       "id": "tygia",
-      "name": "Tỷ giá",
+      "name": "Thị trường 2",
       "topics": [
-        "tỷ giá",
-        "USD",
-        "ngoại hối",
-        "đô la"
+        "thị trường 2",
+        "lãi suất liên ngân hàng",
+        "lãi suất qua đêm"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
@@ -126,11 +125,14 @@
     },
     {
       "id": "chungkhoan",
-      "name": "Chứng khoán",
+      "name": "Thị trường 3",
       "topics": [
-        "chứng khoán",
-        "VN-Index",
-        "cổ phiếu"
+        "Thị trường 3",
+        "Bơm hút OMO/Tín phiếu",
+        "tổng bơm hút ròng",
+        "OMO",
+        "Tín phiếu",
+        "Lãi suất tín phiếu"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
@@ -153,7 +155,7 @@
     },
     {
       "id": "batdongsan",
-      "name": "Bất động sản",
+      "name": "Chính sách Tài khóa",
       "topics": [
         "bất động sản",
         "nhà đất",
