@@ -21,7 +21,12 @@ import streamlit as st
 CONFIG_FILE = "config.json"
 DATA_FILE = "data.json"
 IMPACTS = ["Tích cực", "Tiêu cực", "Trung lập"]
-DEFAULT_PROMPT = "Tóm tắt CỐT LÕI bài viết trong 5 đến 10 câu, nêu rõ số liệu nếu có."
+DEFAULT_PROMPT = ("Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt CỐT LÕI của bài "
+                  "trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, tập trung nêu rõ các con số, "
+                  "số liệu cụ thể nếu bài có.")
+GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.5-flash",
+                 "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
+DEFAULT_MODEL = GEMINI_MODELS[0]
 COLS_PER_ROW = 2
 
 
@@ -39,15 +44,19 @@ def load_data():
 
 
 def load_blocks():
-    if "live_blocks" in st.session_state:
-        return st.session_state["live_blocks"]
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f).get("blocks", [])
+                c = json.load(f)
+            blocks = st.session_state.get("live_blocks", c.get("blocks", []))
+            prompt = st.session_state.get("live_prompt", c.get("prompt_instructions", DEFAULT_PROMPT))
+            model = st.session_state.get("live_model", c.get("model") or DEFAULT_MODEL)
+            return blocks, prompt, model
         except Exception:
             pass
-    return []
+    return (st.session_state.get("live_blocks", []),
+            st.session_state.get("live_prompt", DEFAULT_PROMPT),
+            st.session_state.get("live_model", DEFAULT_MODEL))
 
 
 def get_secret(name):
@@ -57,14 +66,15 @@ def get_secret(name):
         return ""
 
 
-def github_save(blocks):
+def github_save(blocks, prompt, model):
     token, repo = get_secret("GH_TOKEN"), get_secret("GH_REPO")
     if not token or not repo:
         return False, "Chưa khai báo GH_TOKEN / GH_REPO trong Secrets."
     api = f"https://api.github.com/repos/{repo}/contents/{CONFIG_FILE}"
     headers = {"Authorization": f"Bearer {token}",
                "Accept": "application/vnd.github+json"}
-    content_str = json.dumps({"blocks": blocks}, ensure_ascii=False, indent=2)
+    content_str = json.dumps({"model": model, "prompt_instructions": prompt, "blocks": blocks},
+                             ensure_ascii=False, indent=2)
     sha = None
     try:
         r = requests.get(api, headers=headers, timeout=20)
@@ -97,7 +107,7 @@ def impact_label(impact):
 
 st.set_page_config(page_title="Dashboard Kinh tế", page_icon="📊", layout="wide")
 
-blocks = load_blocks()
+blocks, global_prompt, global_model = load_blocks()
 blocks_data, updated_at = load_data()
 
 page = st.sidebar.radio("Trang", ["📊 Tin tức", "⚙️ Cấu hình"])
@@ -117,32 +127,39 @@ if page == "📊 Tin tức":
         # Lọc nhanh theo tác động (áp dụng cho mọi block)
         impact_filter = st.selectbox("Lọc theo tác động", ["Tất cả"] + IMPACTS)
 
-        for i in range(0, len(blocks), COLS_PER_ROW):
-            row_blocks = blocks[i:i + COLS_PER_ROW]
-            cols = st.columns(len(row_blocks))
-            for col, block in zip(cols, row_blocks):
-                with col:
-                    bid = block.get("id")
-                    bdata = blocks_data.get(bid, {})
-                    arts = bdata.get("articles", [])
-                    if impact_filter != "Tất cả":
-                        arts = [a for a in arts
-                                if (a.get("impact") or "Trung lập") == impact_filter]
-                    with st.container(border=True, height=460):
-                        st.markdown(f"#### {block.get('name', bid)}")
-                        upd = bdata.get("updated_at")
-                        st.caption(f"{len(arts)} tin"
-                                   + (f" · cập nhật {upd}" if upd else ""))
-                        if not arts:
-                            st.caption("_Chưa có tin._")
-                        for a in arts:
-                            st.markdown(f"**[{a.get('title','')}]({a.get('link','')})**")
-                            st.markdown(
-                                f"{impact_label(a.get('impact') or 'Trung lập')}  ·  "
+        # Nhóm block theo "hàng" đã cấu hình. Block chưa đặt hàng thì xếp xuống cuối.
+        rows = {}
+        for order, block in enumerate(blocks):
+            r = block.get("row", 0) or (9999)   # chưa đặt -> dồn về nhóm cuối
+            rows.setdefault(r, []).append((order, block))
+
+        def render_block(block):
+            bid = block.get("id")
+            bdata = blocks_data.get(bid, {})
+            arts = bdata.get("articles", [])
+            if impact_filter != "Tất cả":
+                arts = [a for a in arts
+                        if (a.get("impact") or "Trung lập") == impact_filter]
+            with st.container(border=True, height=460):
+                st.markdown(f"#### {block.get('name', bid)}")
+                upd = bdata.get("updated_at")
+                st.caption(f"{len(arts)} tin" + (f" · cập nhật {upd}" if upd else ""))
+                if not arts:
+                    st.caption("_Chưa có tin._")
+                for a in arts:
+                    st.markdown(f"**[{a.get('title','')}]({a.get('link','')})**")
+                    st.markdown(f"{impact_label(a.get('impact') or 'Trung lập')}  ·  "
                                 f"📰 {a.get('source','')}")
-                            if a.get("summary"):
-                                st.caption(a["summary"])
-                            st.divider()
+                    if a.get("summary"):
+                        st.caption(a["summary"])
+                    st.divider()
+
+        for r in sorted(rows.keys()):
+            row_items = [b for _, b in sorted(rows[r], key=lambda x: x[0])]
+            cols = st.columns(len(row_items))
+            for col, block in zip(cols, row_items):
+                with col:
+                    render_block(block)
 
 # ============================ TRANG CẤU HÌNH ============================
 else:
@@ -169,12 +186,33 @@ else:
 
     st.success("Đã mở khóa. Chỉnh xong nhớ bấm **Lưu tất cả** ở cuối trang.")
 
+    # Khởi tạo giá trị ban đầu (chỉ lần đầu) để widget không bị xung đột value/state
+    if "model_select" not in st.session_state:
+        st.session_state["model_select"] = global_model if global_model in GEMINI_MODELS else DEFAULT_MODEL
+    if "global_prompt" not in st.session_state:
+        st.session_state["global_prompt"] = global_prompt
+
+    st.subheader("Model AI")
+    st.selectbox("Chọn model", GEMINI_MODELS, key="model_select",
+                 help="Nếu model báo hết lượt, chọn model khác ở đây rồi Lưu — "
+                      "không cần sửa fetch.py.")
+
+    st.subheader("Prompt chung cho AI")
+    st.caption("Dùng chung cho mọi block (vì mỗi bài chỉ gọi AI một lần). Hệ thống tự "
+               "thêm yêu cầu chọn block và đánh giá tác động, bạn chỉ cần mô tả cách tóm tắt.")
+    if st.button("↩️ Khôi phục prompt mặc định"):
+        st.session_state["global_prompt"] = DEFAULT_PROMPT
+        st.rerun()
+    st.text_area("Prompt", key="global_prompt", height=140)
+    st.markdown("---")
+    st.subheader("Các block")
+
     if st.button("➕ Thêm block mới"):
         st.session_state["draft"].append({
             "id": "blk_" + uuid.uuid4().hex[:6],
             "name": "Block mới", "topics": [],
             "rss_feeds": {"VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss"},
-            "prompt_instructions": DEFAULT_PROMPT, "update_hours": [7],
+            "update_hours": [7], "row": 1,
         })
         st.rerun()
 
@@ -188,12 +226,12 @@ else:
             st.text_area("Từ khóa của block (mỗi dòng một từ)",
                          value="\n".join(blk.get("topics", [])),
                          key=f"topics_{bid}", height=120,
-                         help="Chỉ bài có chứa một trong các từ khóa này mới vào block.")
+                         help="Chỉ bài có chứa một trong các từ khóa này mới được xét vào block.")
 
             st.caption("Nguồn RSS (gõ vào ô, bấm dòng trống cuối để thêm):")
             rss_rows = [{"Tên nguồn": k, "Link RSS": v}
                         for k, v in blk.get("rss_feeds", {}).items()]
-            if not rss_rows:   # block rỗng -> cho sẵn 1 dòng trống để gõ ngay
+            if not rss_rows:
                 rss_rows = [{"Tên nguồn": "", "Link RSS": ""}]
             rss_edits[bid] = st.data_editor(
                 rss_rows, num_rows="dynamic", use_container_width=True,
@@ -203,13 +241,16 @@ else:
                     "Link RSS": st.column_config.TextColumn("Link RSS", width="large"),
                 })
 
-            st.text_area("Prompt cho AI", value=blk.get("prompt_instructions", DEFAULT_PROMPT),
-                         key=f"prompt_{bid}", height=120)
-
             st.multiselect("Giờ cập nhật (giờ Việt Nam)", options=list(range(24)),
                            default=blk.get("update_hours", []),
                            format_func=lambda h: f"{h}h", key=f"hours_{bid}",
-                           help="Block chỉ cập nhật vào những giờ này, giúp trải đều quota.")
+                           help="Block chỉ cập nhật vào những giờ này. Muốn AI cân nhắc "
+                                "một bài giữa nhiều block, đặt chúng cùng giờ.")
+
+            st.number_input("Hiển thị ở hàng số mấy", min_value=1, max_value=20, step=1,
+                            value=int(blk.get("row", 1) or 1), key=f"row_{bid}",
+                            help="Các block cùng số hàng sẽ nằm cạnh nhau trên một hàng. "
+                                 "Ví dụ: GDP và Lạm phát cùng để hàng 1.")
 
             if st.button("🗑️ Xóa block này", key=f"del_{bid}"):
                 st.session_state["draft"] = [b for b in st.session_state["draft"]
@@ -230,18 +271,21 @@ else:
                 l = (row.get("Link RSS") or "").strip()
                 if n and l:
                     rss[n] = l
-            prompt = (st.session_state.get(f"prompt_{bid}", "") or "").strip() or DEFAULT_PROMPT
             hours = sorted(st.session_state.get(f"hours_{bid}", []))
+            row = int(st.session_state.get(f"row_{bid}", 1) or 1)
             if name and rss:
                 new_blocks.append({"id": bid, "name": name, "topics": topics,
-                                   "rss_feeds": rss, "prompt_instructions": prompt,
-                                   "update_hours": hours})
+                                   "rss_feeds": rss, "update_hours": hours, "row": row})
+        prompt = (st.session_state.get("global_prompt", "") or "").strip() or DEFAULT_PROMPT
+        model = st.session_state.get("model_select", DEFAULT_MODEL)
         if not new_blocks:
             st.error("Cần ít nhất một block có tên và có nguồn RSS.")
         else:
-            ok, msg = github_save(new_blocks)
+            ok, msg = github_save(new_blocks, prompt, model)
             if ok:
                 st.session_state["live_blocks"] = new_blocks
+                st.session_state["live_prompt"] = prompt
+                st.session_state["live_model"] = model
                 st.session_state["draft"] = [dict(b) for b in new_blocks]
                 st.success(msg + " Robot sẽ dùng cấu hình mới từ lần chạy kế tiếp.")
             else:

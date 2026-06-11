@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-fetch.py — robot lấy tin theo MÔ HÌNH NHIỀU BLOCK.
-Chạy mỗi giờ (GitHub Actions). Mỗi lần thức:
-  - đọc config.json (danh sách block, mỗi block có giờ cập nhật riêng)
-  - chỉ chạy những block "tới giờ" (hoặc tất cả nếu bấm Run workflow tay)
-  - với mỗi block: lấy RSS -> lọc theo TỪ KHÓA của block -> đọc toàn văn ->
-    AI tóm tắt/phân loại/đánh giá -> lưu vào data.json theo block.
+fetch.py — robot lấy tin theo MÔ HÌNH GỘP (mỗi bài chỉ gọi AI một lần).
+Chạy mỗi giờ. Mỗi lần thức:
+  - đọc config.json (prompt chung + danh sách block; mỗi block có giờ riêng)
+  - xác định block "tới giờ" (hoặc tất cả nếu bấm Run workflow tay)
+  - quét GỘP tất cả nguồn của các block đó MỘT LẦN, loại trùng
+  - lọc theo từ khóa (bỏ bài rác, không tốn lượt AI)
+  - mỗi bài còn lại gọi AI MỘT LẦN: vừa tóm tắt, vừa chọn block phù hợp nhất
+  - lưu vào data.json theo block.
 
-Biến môi trường: GEMINI_API_KEY (bắt buộc), FORCE_ALL ("true" để chạy mọi block).
+Biến môi trường: GEMINI_API_KEY (bắt buộc), FORCE_ALL ("true" = chạy mọi block).
 """
 
 import os
@@ -19,10 +21,12 @@ from datetime import datetime, timezone, timedelta
 import feedparser
 
 IMPACTS = ["Tích cực", "Tiêu cực", "Trung lập"]
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
+DEFAULT_PROMPT = ("Tóm tắt CỐT LÕI bài viết trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, "
+                  "nêu rõ số liệu nếu có.")
+DEFAULT_MODEL = "gemini-2.5-flash-lite"
 
-MAX_NEW_PER_BLOCK = 10      # mỗi block xử lý tối đa bao nhiêu tin mới mỗi lần
-MAX_STORE_PER_BLOCK = 100   # mỗi block giữ tối đa bao nhiêu tin
+MAX_NEW_PER_RUN = 20        # tổng số bài gọi AI mỗi lần chạy (giới hạn quota)
+MAX_STORE_PER_BLOCK = 100
 MAX_CONTENT_CHARS = 4000
 REQUEST_DELAY_SEC = 3
 
@@ -31,18 +35,23 @@ DATA_FILE = "data.json"
 VN_TZ = timezone(timedelta(hours=7))
 
 
-def load_blocks():
+def load_config():
+    blocks, prompt, model = [], DEFAULT_PROMPT, ""
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f).get("blocks", [])
+                c = json.load(f)
+            blocks = c.get("blocks", [])
+            prompt = c.get("prompt_instructions") or DEFAULT_PROMPT
+            model = c.get("model") or ""
         except Exception:
-            return []
-    return []
+            pass
+    # Ưu tiên model trong config; nếu trống thì lấy biến môi trường; cuối cùng là mặc định.
+    model = model or os.environ.get("GEMINI_MODEL", "") or DEFAULT_MODEL
+    return blocks, prompt, model
 
 
 def load_data():
-    """Trả về dict {block_id: {name, updated_at, articles}}."""
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -55,10 +64,8 @@ def load_data():
 
 
 def save_data(blocks_data):
-    payload = {
-        "updated_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
-        "blocks": blocks_data,
-    }
+    payload = {"updated_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
+               "blocks": blocks_data}
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
@@ -86,39 +93,42 @@ def get_full_text(link, fallback=""):
     return fallback
 
 
-def analyze(api_key, instructions, topics, title, content, max_retries=3):
+def analyze(api_key, model, instructions, active_blocks, title, content, max_retries=3):
+    """Một lần gọi AI: tóm tắt + chọn block + đánh giá tác động."""
     from google import genai
     from google.genai import types
     client = genai.Client(api_key=api_key)
 
-    topic_line = (f'- "topic": chọn ĐÚNG MỘT trong: {topics}'
-                  if topics else '- "topic": để là "Khác"')
+    block_lines = "\n".join(
+        f"- {b['name']}: {', '.join(b.get('topics', []))}" for b in active_blocks)
+    names = [b["name"] for b in active_blocks]
+
     prompt = f"""{instructions}
 
 Tiêu đề: {title}
 Nội dung bài: {content}
 
-Sau khi tóm tắt theo yêu cầu trên, hãy:
-{topic_line}
-- "impact": đánh giá tác động tới kinh tế / thị trường, chọn ĐÚNG MỘT trong: {IMPACTS}
+Dưới đây là các nhóm tin và từ khóa của chúng:
+{block_lines}
 
-Chỉ trả về JSON đúng định dạng: {{"summary": "...", "topic": "...", "impact": "..."}}"""
+Hãy trả về JSON gồm:
+- "summary": bản tóm tắt theo yêu cầu trên.
+- "block": tên nhóm phù hợp nhất, chép ĐÚNG MỘT tên trong: {names}
+- "impact": tác động tới kinh tế/thị trường, chọn ĐÚNG MỘT trong: {IMPACTS}
+
+Chỉ trả JSON: {{"summary": "...", "block": "...", "impact": "..."}}"""
 
     for attempt in range(max_retries):
         try:
             resp = client.models.generate_content(
-                model=GEMINI_MODEL, contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json"),
-            )
+                model=model, contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json"))
             data = json.loads(resp.text)
-            topic = data.get("topic", "Khác")
-            if topics and topic not in topics:
-                topic = topics[0]
             impact = data.get("impact", "Trung lập")
             if impact not in IMPACTS:
                 impact = "Trung lập"
             return {"ok": True, "summary": data.get("summary", "").strip(),
-                    "topic": topic, "impact": impact}
+                    "block": data.get("block", ""), "impact": impact}
         except Exception as e:
             msg = str(e); low = msg.lower()
             if "resource_exhausted" in low or "429" in msg:
@@ -128,17 +138,40 @@ Chỉ trả về JSON đúng định dạng: {{"summary": "...", "topic": "...",
             return {"ok": False, "error": msg, "kind": "other"}
 
 
-def process_block(api_key, block, bdata):
-    """Xử lý một block, cập nhật bdata tại chỗ. Trả về (số_thêm, lỗi_nếu_có)."""
-    topics = block.get("topics", [])
-    rss = block.get("rss_feeds", {})
-    instructions = block.get("prompt_instructions", "Tóm tắt tin trong 5-10 câu.")
-    articles = bdata.get("articles", [])
-    existing_ids = {a["id"] for a in articles}
+def main():
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        print("LỖI: chưa có GEMINI_API_KEY."); return
 
-    # Gom tin mới + lọc theo từ khóa
+    force_all = os.environ.get("FORCE_ALL", "").lower() == "true"
+    hour = datetime.now(VN_TZ).hour
+    blocks, instructions, model = load_config()
+    blocks_data = load_data()
+    print(f"Dùng model: {model}")
+
+    active = [b for b in blocks if force_all or hour in b.get("update_hours", [])]
+    print(f"Giờ VN {hour}h. Chạy tất cả: {force_all}. "
+          f"Số block tới giờ: {len(active)}")
+    if not active:
+        save_data(blocks_data)
+        print("Không có block nào tới giờ."); return
+
+    name_to_id = {b["name"]: b["id"] for b in active}
+
+    # Tất cả id đã có (trên MỌI block) -> mỗi bài chỉ xử lý một lần duy nhất
+    existing_ids = set()
+    for bd in blocks_data.values():
+        for a in bd.get("articles", []):
+            existing_ids.add(a["id"])
+
+    # Quét GỘP các nguồn của block đang tới giờ, loại trùng nguồn theo URL
+    feeds = {}
+    for b in active:
+        for name, url in b.get("rss_feeds", {}).items():
+            feeds.setdefault(url, name)
+
     candidates = []
-    for source_name, url in rss.items():
+    for url, source_name in feeds.items():
         try:
             feed = feedparser.parse(url)
         except Exception:
@@ -152,69 +185,45 @@ def process_block(api_key, block, bdata):
                 continue
             title = entry.get("title", "")
             rss_sum = entry.get("summary", "") or entry.get("description", "")
-            if topics and not matches_keywords(title + " " + rss_sum, topics):
-                continue   # không khớp từ khóa -> bỏ qua, không tốn lượt AI
+            matched = [b for b in active
+                       if matches_keywords(title + " " + rss_sum, b.get("topics", []))]
+            if not matched:
+                continue   # không khớp từ khóa block nào -> bỏ, không tốn AI
             existing_ids.add(aid)
-            candidates.append({"id": aid, "title": title or "(Không có tiêu đề)",
+            candidates.append({"id": aid, "title": title or "(Không tiêu đề)",
                                "source": source_name, "link": link,
                                "published": entry.get("published", ""),
-                               "rss_summary": rss_sum})
+                               "rss_summary": rss_sum, "fallback_id": matched[0]["id"]})
 
-    candidates = candidates[:MAX_NEW_PER_BLOCK]
+    candidates = candidates[:MAX_NEW_PER_RUN]
+    print(f"Có {len(candidates)} bài mới khớp từ khóa để xử lý.")
+
     added = 0
     for art in candidates:
         full_text = get_full_text(art["link"], fallback=art["rss_summary"])
-        result = analyze(api_key, instructions, topics, art["title"], full_text)
+        result = analyze(api_key, model, instructions, active, art["title"], full_text)
         if not result["ok"]:
-            return added, result
-        articles.insert(0, {
+            print(f"Dừng vì lỗi ({result.get('kind')}): {str(result.get('error'))[:120]}")
+            break
+        bid = name_to_id.get(result["block"], art["fallback_id"])
+        bdata = blocks_data.setdefault(bid, {"articles": []})
+        block_name = next((b["name"] for b in active if b["id"] == bid), bid)
+        bdata.setdefault("articles", []).insert(0, {
             "id": art["id"], "title": art["title"], "source": art["source"],
             "link": art["link"], "published": art["published"],
-            "summary": result["summary"], "topic": result["topic"],
+            "summary": result["summary"], "topic": block_name,
             "impact": result["impact"],
             "created_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
         })
+        bdata["articles"] = bdata["articles"][:MAX_STORE_PER_BLOCK]
+        bdata["name"] = block_name
+        bdata["updated_at"] = datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M")
         added += 1
-        print(f"    + {art['title'][:55]}")
+        print(f"  + [{block_name}] {art['title'][:50]}")
         time.sleep(REQUEST_DELAY_SEC)
 
-    bdata["articles"] = articles[:MAX_STORE_PER_BLOCK]
-    bdata["name"] = block.get("name", block.get("id"))
-    bdata["updated_at"] = datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M")
-    return added, None
-
-
-def main():
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        print("LỖI: chưa có GEMINI_API_KEY."); return
-
-    force_all = os.environ.get("FORCE_ALL", "").lower() == "true"
-    current_hour = datetime.now(VN_TZ).hour
-    print(f"Giờ VN hiện tại: {current_hour}h. Chạy tất cả block: {force_all}")
-
-    blocks = load_blocks()
-    blocks_data = load_data()
-
-    total_added = 0
-    for block in blocks:
-        bid = block.get("id")
-        if not bid:
-            continue
-        due = force_all or (current_hour in block.get("update_hours", []))
-        if not due:
-            continue
-        print(f"== Block '{block.get('name', bid)}' đang tới giờ, xử lý...")
-        bdata = blocks_data.get(bid, {"articles": []})
-        added, err = process_block(api_key, block, bdata)
-        blocks_data[bid] = bdata
-        total_added += added
-        if err:
-            print(f"  Dừng vì lỗi ({err.get('kind')}): {str(err.get('error'))[:120]}")
-            break   # gặp lỗi quota thì dừng để không tốn thêm
-
     save_data(blocks_data)
-    print(f"Xong. Tổng cộng thêm {total_added} tin.")
+    print(f"Xong. Thêm {added} tin.")
 
 
 if __name__ == "__main__":

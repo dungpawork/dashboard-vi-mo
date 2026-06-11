@@ -1,4 +1,6 @@
 {
+  "model": "gemini-2.5-flash-lite",
+  "prompt_instructions": "Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt CỐT LÕI của bài trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, tập trung nêu rõ các con số, số liệu cụ thể nếu bài có.",
   "blocks": [
     {
       "id": "gdp",
@@ -21,11 +23,11 @@
         "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
         "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tăng trưởng kinh tế trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         6,
         14
-      ]
+      ],
+      "row": 1
     },
     {
       "id": "lamphat",
@@ -48,11 +50,11 @@
         "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
         "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lạm phát trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         7,
         15
-      ]
+      ],
+      "row": 1
     },
     {
       "id": "laisuat",
@@ -74,11 +76,11 @@
         "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
         "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lãi suất trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         8,
         16
-      ]
+      ],
+      "row": 2
     },
     {
       "id": "tygia",
@@ -102,11 +104,11 @@
         "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
         "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tỷ giá trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         9,
         17
-      ]
+      ],
+      "row": 2
     },
     {
       "id": "chungkhoan",
@@ -129,11 +131,11 @@
         "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
         "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về thị trường chứng khoán trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         10,
         18
-      ]
+      ],
+      "row": 2
     },
     {
       "id": "batdongsan",
@@ -156,11 +158,11 @@
         "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
         "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về bất động sản trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         11,
         19
-      ]
+      ],
+      "row": 3
     },
     {
       "id": "taikhoa",
@@ -184,11 +186,11 @@
         "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
         "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về chính sách tài khóa trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         12,
         20
-      ]
+      ],
+      "row": 3
     }
   ]
 }
