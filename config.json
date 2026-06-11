@@ -1,0 +1,22 @@
+{
+  "rss_feeds": {
+    "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
+    "CafeF": "https://cafef.vn/trang-chu.rss",
+    "VietnamBiz - Kinh tế": "https://vietnambiz.vn/kinh-te.rss",
+    "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
+    "Báo Đầu tư": "https://baodautu.vn/rss/home.rss"
+  },
+  "topics": [
+    "GDP & Tăng trưởng",
+    "Lạm phát",
+    "Lãi suất",
+    "Tỷ giá",
+    "Chứng khoán",
+    "Bất động sản",
+    "Xuất nhập khẩu",
+    "Doanh nghiệp",
+    "Chính sách tiền tệ",
+    "Khác"
+  ],
+  "prompt_instructions": "Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt CỐT LÕI của bài trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, tập trung nêu rõ các con số, số liệu cụ thể nếu bài có."
+}

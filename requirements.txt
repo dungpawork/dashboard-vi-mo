@@ -1,4 +1,2 @@
 streamlit
-feedparser
-google-genai
-trafilatura
+requests

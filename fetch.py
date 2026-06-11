@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 fetch.py — "con robot" lấy tin, chạy trên GitHub Actions theo lịch.
-Đọc RSS -> đọc toàn văn bài -> AI tóm tắt/phân loại/đánh giá -> ghi data.json.
-App Streamlit chỉ đọc data.json để hiển thị.
+Đọc cấu hình từ config.json (nguồn RSS, topics, prompt) -> lấy RSS ->
+đọc toàn văn -> AI tóm tắt/phân loại/đánh giá -> ghi data.json.
 
 Chạy: python fetch.py   (cần biến môi trường GEMINI_API_KEY)
 """
@@ -15,42 +15,60 @@ from datetime import datetime, timezone, timedelta
 
 import feedparser
 
-# ---------------- Cấu hình (giống app, có thể chỉnh) ----------------
+# ---------------- Cấu hình mặc định (dùng khi thiếu config.json) ----------------
 
-RSS_FEEDS = {
+DEFAULT_RSS = {
     "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
     "CafeF":                  "https://cafef.vn/trang-chu.rss",
     "VietnamBiz - Kinh tế":   "https://vietnambiz.vn/kinh-te.rss",
     "Tuổi Trẻ - Kinh doanh":  "https://tuoitre.vn/rss/kinh-doanh.rss",
     "Báo Đầu tư":             "https://baodautu.vn/rss/home.rss",
 }
-
-TOPICS = [
+DEFAULT_TOPICS = [
     "GDP & Tăng trưởng", "Lạm phát", "Lãi suất", "Tỷ giá", "Chứng khoán",
     "Bất động sản", "Xuất nhập khẩu", "Doanh nghiệp", "Chính sách tiền tệ", "Khác",
 ]
+DEFAULT_PROMPT = ("Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt CỐT LÕI "
+                  "của bài trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, tập trung "
+                  "nêu rõ các con số, số liệu cụ thể nếu bài có.")
+
 IMPACTS = ["Tích cực", "Tiêu cực", "Trung lập"]
 
-# Model AI. Nếu một model hết lượt, đổi sang model khác trong dòng này.
+# Có thể chỉnh: nếu model hết lượt, đổi sang model khác.
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
-MAX_NEW_PER_RUN = 15        # số tin mới xử lý mỗi lần chạy
-MAX_STORE = 300             # giữ tối đa bao nhiêu tin trong data.json
+MAX_NEW_PER_RUN = 15
+MAX_STORE = 300
 MAX_CONTENT_CHARS = 4000
 REQUEST_DELAY_SEC = 3
 
+CONFIG_FILE = "config.json"
 DATA_FILE = "data.json"
-VN_TZ = timezone(timedelta(hours=7))   # giờ Việt Nam
+VN_TZ = timezone(timedelta(hours=7))
 
 
-# ---------------- Đọc / ghi kho data.json ----------------
+def load_config():
+    """Đọc config.json; nếu thiếu thì dùng mặc định."""
+    rss, topics, prompt = DEFAULT_RSS, DEFAULT_TOPICS, DEFAULT_PROMPT
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                c = json.load(f)
+            rss = c.get("rss_feeds") or DEFAULT_RSS
+            topics = c.get("topics") or DEFAULT_TOPICS
+            prompt = c.get("prompt_instructions") or DEFAULT_PROMPT
+        except Exception:
+            pass
+    if "Khác" not in topics:
+        topics = topics + ["Khác"]
+    return rss, topics, prompt
+
 
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
-                d = json.load(f)
-            return d.get("articles", [])
+                return json.load(f).get("articles", [])
         except Exception:
             return []
     return []
@@ -69,8 +87,6 @@ def make_id(link):
     return hashlib.md5(link.encode("utf-8")).hexdigest()
 
 
-# ---------------- Đọc toàn văn bài báo ----------------
-
 def get_full_text(link, fallback=""):
     try:
         import trafilatura
@@ -85,25 +101,21 @@ def get_full_text(link, fallback=""):
     return fallback
 
 
-# ---------------- AI: tóm tắt + phân loại + đánh giá tác động ----------------
-
-def analyze(api_key, title, content, max_retries=3):
+def analyze(api_key, instructions, topics, title, content, max_retries=3):
     from google import genai
     from google.genai import types
     client = genai.Client(api_key=api_key)
 
-    prompt = f"""Bạn là chuyên gia phân tích tin kinh tế. Đọc bài sau và trả về JSON.
+    prompt = f"""{instructions}
 
 Tiêu đề: {title}
 Nội dung bài: {content}
 
-Yêu cầu:
-1. "summary": tóm tắt CỐT LÕI của bài trong 5 đến 10 câu ngắn gọn bằng tiếng Việt.
-   Tập trung nêu rõ các con số, số liệu cụ thể nếu bài có.
-2. "topic": chọn ĐÚNG MỘT chủ đề phù hợp nhất trong: {TOPICS}
-3. "impact": đánh giá tác động tới nền kinh tế / thị trường, chọn ĐÚNG MỘT trong: {IMPACTS}
+Sau khi tóm tắt theo yêu cầu trên, hãy:
+- "topic": chọn ĐÚNG MỘT chủ đề phù hợp nhất trong: {topics}
+- "impact": đánh giá tác động tới nền kinh tế / thị trường, chọn ĐÚNG MỘT trong: {IMPACTS}
 
-Chỉ trả về JSON: {{"summary": "...", "topic": "...", "impact": "..."}}"""
+Chỉ trả về JSON đúng định dạng: {{"summary": "...", "topic": "...", "impact": "..."}}"""
 
     for attempt in range(max_retries):
         try:
@@ -114,7 +126,7 @@ Chỉ trả về JSON: {{"summary": "...", "topic": "...", "impact": "..."}}"""
             )
             data = json.loads(resp.text)
             topic = data.get("topic", "Khác")
-            if topic not in TOPICS:
+            if topic not in topics:
                 topic = "Khác"
             impact = data.get("impact", "Trung lập")
             if impact not in IMPACTS:
@@ -122,30 +134,27 @@ Chỉ trả về JSON: {{"summary": "...", "topic": "...", "impact": "..."}}"""
             return {"ok": True, "summary": data.get("summary", "").strip(),
                     "topic": topic, "impact": impact}
         except Exception as e:
-            msg = str(e)
-            low = msg.lower()
+            msg = str(e); low = msg.lower()
             if "resource_exhausted" in low or "429" in msg:
                 return {"ok": False, "error": msg, "kind": "quota"}
             if attempt < max_retries - 1:
-                time.sleep(5 * (attempt + 1))
-                continue
+                time.sleep(5 * (attempt + 1)); continue
             return {"ok": False, "error": msg, "kind": "other"}
 
-
-# ---------------- Chạy chính ----------------
 
 def main():
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
-        print("LỖI: chưa có GEMINI_API_KEY trong môi trường.")
-        return
+        print("LỖI: chưa có GEMINI_API_KEY trong môi trường."); return
+
+    rss_feeds, topics, instructions = load_config()
+    print(f"Cấu hình: {len(rss_feeds)} nguồn, {len(topics)} chủ đề.")
 
     articles = load_data()
     existing_ids = {a["id"] for a in articles}
 
-    # Gom tin mới
     new_items = []
-    for source_name, url in RSS_FEEDS.items():
+    for source_name, url in rss_feeds.items():
         try:
             feed = feedparser.parse(url)
         except Exception:
@@ -173,28 +182,24 @@ def main():
     added = 0
     for art in new_items:
         full_text = get_full_text(art["link"], fallback=art["rss_summary"])
-        result = analyze(api_key, art["title"], full_text)
+        result = analyze(api_key, instructions, topics, art["title"], full_text)
         if not result["ok"]:
-            print(f"Dừng vì lỗi ({result.get('kind')}): {result.get('error')[:120]}")
+            print(f"Dừng vì lỗi ({result.get('kind')}): {str(result.get('error'))[:120]}")
             break
         articles.insert(0, {
-            "id": art["id"],
-            "title": art["title"],
-            "source": art["source"],
-            "link": art["link"],
-            "published": art["published"],
-            "summary": result["summary"],
-            "topic": result["topic"],
+            "id": art["id"], "title": art["title"], "source": art["source"],
+            "link": art["link"], "published": art["published"],
+            "summary": result["summary"], "topic": result["topic"],
             "impact": result["impact"],
             "created_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
         })
         added += 1
-        print(f"  + Đã thêm: {art['title'][:60]}")
+        print(f"  + {art['title'][:60]}")
         time.sleep(REQUEST_DELAY_SEC)
 
     articles = articles[:MAX_STORE]
     save_data(articles)
-    print(f"Xong. Thêm {added} tin. Tổng cộng đang lưu {len(articles)} tin.")
+    print(f"Xong. Thêm {added} tin. Tổng đang lưu {len(articles)} tin.")
 
 
 if __name__ == "__main__":
