@@ -1,6 +1,6 @@
 {
   "model": "gemini-2.5-flash-lite",
-  "prompt_instructions": "Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt CỐT LÕI của bài trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, tập trung nêu rõ các con số, số liệu cụ thể nếu bài có.",
+  "prompt_instructions": "Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt CỐT LÕI của bài trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, tập trung nêu rõ các con số, số liệu cụ thể nếu bài có.\nViết dạng bullet point, ngôn ngữ chuyên nghiệp, lịch sự.",
   "blocks": [
     {
       "id": "gdp",
@@ -38,7 +38,13 @@
       "topics": [
         "lạm phát",
         "CPI",
-        "giá tiêu dùng"
+        "giá tiêu dùng",
+        "giá xăng dầu",
+        "CPI giao thông",
+        "giá điện",
+        "giá thịt heo",
+        "CPI hàng hóa và dịch vụ ăn uống",
+        "CPI vật liệu xây dựng và nhà ở"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
@@ -61,10 +67,15 @@
     },
     {
       "id": "laisuat",
-      "name": "Lãi suất",
+      "name": "Thị trường 1",
       "topics": [
+        "Thị trường 1",
         "lãi suất",
-        "điều hành lãi suất"
+        "lãi suất huy động",
+        "ngân hàng thương mại",
+        "tăng trưởng tín dụng",
+        "tăng trưởng huy động",
+        "cung tiền M2"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
