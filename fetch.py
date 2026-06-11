@@ -27,7 +27,8 @@ DEFAULT_PROMPT = ("Tóm tắt CỐT LÕI bài viết trong 5 đến 10 câu ng�
                   "nêu rõ số liệu nếu có.")
 DEFAULT_MODEL = "gemini-2.5-flash-lite"
 
-MAX_NEW_PER_RUN = 20        # tổng số bài gọi AI mỗi lần chạy (giới hạn quota)
+MAX_NEW_PER_RUN = 20        # tổng số bài MỚI gọi AI mỗi lần chạy (giới hạn quota)
+MAX_RESUMMARIZE_PER_RUN = 10  # số tin nhanh cũ được tóm tắt lại mỗi lần chạy
 MAX_STORE_PER_BLOCK = 100
 MAX_CONTENT_CHARS = 4000
 REQUEST_DELAY_SEC = 3
@@ -38,7 +39,7 @@ VN_TZ = timezone(timedelta(hours=7))
 
 
 def load_config():
-    blocks, prompt, model = [], DEFAULT_PROMPT, ""
+    blocks, prompt, model, resummarize = [], DEFAULT_PROMPT, "", True
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -46,11 +47,12 @@ def load_config():
             blocks = c.get("blocks", [])
             prompt = c.get("prompt_instructions") or DEFAULT_PROMPT
             model = c.get("model") or ""
+            resummarize = bool(c.get("resummarize", True))
         except Exception:
             pass
     # Ưu tiên model trong config; nếu trống thì lấy biến môi trường; cuối cùng là mặc định.
     model = model or os.environ.get("GEMINI_MODEL", "") or DEFAULT_MODEL
-    return blocks, prompt, model
+    return blocks, prompt, model, resummarize
 
 
 def load_data():
@@ -157,9 +159,9 @@ def main():
 
     force_all = os.environ.get("FORCE_ALL", "").lower() == "true"
     hour = datetime.now(VN_TZ).hour
-    blocks, instructions, model = load_config()
+    blocks, instructions, model, resummarize = load_config()
     blocks_data = load_data()
-    print(f"Dùng model: {model}")
+    print(f"Dùng model: {model} | Tóm tắt lại tin nhanh: {resummarize}")
 
     active = [b for b in blocks if force_all or hour in b.get("update_hours", [])]
     print(f"Giờ VN {hour}h. Chạy tất cả: {force_all}. "
@@ -257,8 +259,35 @@ def main():
         tag = "AI" if by_ai else "sapo"
         print(f"  + [{block_name}] ({tag}) {art['title'][:48]}")
 
+    # Nâng cấp các "tin nhanh" cũ (sapo) thành tóm tắt AI, nếu được bật và còn lượt
+    re_done = 0
+    if resummarize and ai_available:
+        for b in active:
+            if not ai_available or re_done >= MAX_RESUMMARIZE_PER_RUN:
+                break
+            bdata = blocks_data.get(b["id"], {})
+            for a in bdata.get("articles", []):
+                if a.get("ai", True):
+                    continue   # đã qua AI rồi
+                if not ai_available or re_done >= MAX_RESUMMARIZE_PER_RUN:
+                    break
+                full_text = get_full_text(a.get("link", ""), fallback=a.get("summary", ""))
+                result = analyze(api_key, model, instructions, active, a.get("title", ""), full_text)
+                if not result["ok"]:
+                    print(f"Hết lượt khi tóm tắt lại ({result.get('kind')}); "
+                          "để các tin nhanh còn lại cho lần sau.")
+                    ai_available = False
+                    break
+                a["summary"] = result["summary"]
+                a["impact"] = result["impact"]
+                a["ai"] = True
+                re_done += 1
+                print(f"  ↑ Tóm tắt lại: {a.get('title','')[:48]}")
+                time.sleep(REQUEST_DELAY_SEC)
+
     save_data(blocks_data)
-    print(f"Xong. Thêm {added} tin ({added_ai} qua AI, {added_excerpt} dùng sapo).")
+    print(f"Xong. Thêm {added} tin ({added_ai} qua AI, {added_excerpt} dùng sapo). "
+          f"Tóm tắt lại {re_done} tin nhanh cũ.")
 
 
 if __name__ == "__main__":

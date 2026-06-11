@@ -51,12 +51,14 @@ def load_blocks():
             blocks = st.session_state.get("live_blocks", c.get("blocks", []))
             prompt = st.session_state.get("live_prompt", c.get("prompt_instructions", DEFAULT_PROMPT))
             model = st.session_state.get("live_model", c.get("model") or DEFAULT_MODEL)
-            return blocks, prompt, model
+            resummarize = st.session_state.get("live_resummarize", bool(c.get("resummarize", True)))
+            return blocks, prompt, model, resummarize
         except Exception:
             pass
     return (st.session_state.get("live_blocks", []),
             st.session_state.get("live_prompt", DEFAULT_PROMPT),
-            st.session_state.get("live_model", DEFAULT_MODEL))
+            st.session_state.get("live_model", DEFAULT_MODEL),
+            st.session_state.get("live_resummarize", True))
 
 
 def get_secret(name):
@@ -66,14 +68,15 @@ def get_secret(name):
         return ""
 
 
-def github_save(blocks, prompt, model):
+def github_save(blocks, prompt, model, resummarize):
     token, repo = get_secret("GH_TOKEN"), get_secret("GH_REPO")
     if not token or not repo:
         return False, "Chưa khai báo GH_TOKEN / GH_REPO trong Secrets."
     api = f"https://api.github.com/repos/{repo}/contents/{CONFIG_FILE}"
     headers = {"Authorization": f"Bearer {token}",
                "Accept": "application/vnd.github+json"}
-    content_str = json.dumps({"model": model, "prompt_instructions": prompt, "blocks": blocks},
+    content_str = json.dumps({"model": model, "resummarize": bool(resummarize),
+                              "prompt_instructions": prompt, "blocks": blocks},
                              ensure_ascii=False, indent=2)
     sha = None
     try:
@@ -107,7 +110,7 @@ def impact_label(impact):
 
 st.set_page_config(page_title="Dashboard Kinh tế", page_icon="📊", layout="wide")
 
-blocks, global_prompt, global_model = load_blocks()
+blocks, global_prompt, global_model, global_resummarize = load_blocks()
 blocks_data, updated_at = load_data()
 
 page = st.sidebar.radio("Trang", ["📊 Tin tức", "⚙️ Cấu hình"])
@@ -199,6 +202,10 @@ else:
     st.selectbox("Chọn model", GEMINI_MODELS, key="model_select",
                  help="Nếu model báo hết lượt, chọn model khác ở đây rồi Lưu — "
                       "không cần sửa fetch.py.")
+    st.toggle("Tự tóm tắt lại 'tin nhanh' bằng AI khi có quota trở lại",
+              value=global_resummarize, key="resummarize_toggle",
+              help="Khi bật: những tin trước đó chỉ lấy sapo (do hết lượt) sẽ được "
+                   "robot tóm tắt lại đầy đủ ở các lần chạy sau, nếu còn lượt AI.")
 
     st.subheader("Prompt chung cho AI")
     st.caption("Dùng chung cho mọi block (vì mỗi bài chỉ gọi AI một lần). Hệ thống tự "
@@ -281,14 +288,16 @@ else:
                                    "rss_feeds": rss, "update_hours": hours, "row": row})
         prompt = (st.session_state.get("global_prompt", "") or "").strip() or DEFAULT_PROMPT
         model = st.session_state.get("model_select", DEFAULT_MODEL)
+        resummarize = bool(st.session_state.get("resummarize_toggle", True))
         if not new_blocks:
             st.error("Cần ít nhất một block có tên và có nguồn RSS.")
         else:
-            ok, msg = github_save(new_blocks, prompt, model)
+            ok, msg = github_save(new_blocks, prompt, model, resummarize)
             if ok:
                 st.session_state["live_blocks"] = new_blocks
                 st.session_state["live_prompt"] = prompt
                 st.session_state["live_model"] = model
+                st.session_state["live_resummarize"] = resummarize
                 st.session_state["draft"] = [dict(b) for b in new_blocks]
                 st.success(msg + " Robot sẽ dùng cấu hình mới từ lần chạy kế tiếp.")
             else:
