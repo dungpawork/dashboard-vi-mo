@@ -7,8 +7,11 @@
       "name": "GDP & Tăng trưởng",
       "topics": [
         "GDP",
-        "tăng trưởng",
-        "tổng sản phẩm"
+        "tăng trưởng kinh tế",
+        "tổng sản phẩm quốc nội",
+        "sản xuất công nghiệp IIP",
+        "chỉ số PMI",
+        "chỉ số bán lẻ hàng hóa và dịch vụ"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
