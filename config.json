@@ -5,23 +5,21 @@
       "name": "GDP & Tăng trưởng",
       "topics": [
         "GDP",
-        "tăng trưởng kinh tế",
-        "tổng sản phẩm quốc nội",
-        "sản xuất công nghiệp IIP",
-        "chỉ số PMI",
-        "chỉ số bán lẻ hàng hóa và dịch vụ"
+        "tăng trưởng",
+        "tổng sản phẩm"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-        "CafeF": "https://cafef.vn/trang-chu.rss",
-        "Báo Đầu Tư (Cơ quan của Bộ KH&ĐT)": "https://baodautu.vn/thoi-su-dau-tu.rss",
-        "VnEconomy (Thời báo Kinh tế VN)": "https://vneconomy.vn/rss/kinh-te-vi-mo.rss",
-        "VietNamNet (Báo chính thống uy tín)": "https://vietnamnet.vn/rss/kinh-doanh.rss",
-        "Báo Đầu Tư (Bộ KH&ĐT)": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
-        "VnEconomy (Thời báo Kinh tế)": "https://vneconomy.vn/rss/tai-chinh-ngan-hang.rss",
-        "CafeF (Kênh dữ liệu lớn)": "https://cafef.vn/tai-chinh-ngan-hang.rss",
-        "Báo Tuổi Trẻ": "https://tuoitre.vn/rss/kinh-doanh.rss",
-        "Báo Thanh Niên": "https://thanhnien.vn/rss/kinh-doanh.rss"
+        "CafeF - Trang chủ": "https://cafef.vn/trang-chu.rss",
+        "Báo Đầu tư - Thời sự đầu tư": "https://baodautu.vn/thoi-su-dau-tu.rss",
+        "VnEconomy - Kinh tế vĩ mô": "https://vneconomy.vn/kinh-te-vi-mo.rss",
+        "VietNamNet - Kinh doanh": "https://vietnamnet.vn/rss/kinh-doanh.rss",
+        "Báo Đầu tư - Ngân hàng & Bảo hiểm": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
+        "VnEconomy - Tài chính ngân hàng": "https://vneconomy.vn/tai-chinh-ngan-hang.rss",
+        "CafeF - Vĩ mô đầu tư": "https://cafef.vn/vi-mo-dau-tu.rss",
+        "CafeF - Tài chính ngân hàng": "https://cafef.vn/tai-chinh-ngan-hang.rss",
+        "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
+        "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tăng trưởng kinh tế trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
@@ -35,25 +33,20 @@
       "topics": [
         "lạm phát",
         "CPI",
-        "giá tiêu dùng",
-        "giá xăng dầu",
-        "CPI giao thông",
-        "giá điện",
-        "giá thịt heo",
-        "CPI hàng hóa và dịch vụ ăn uống",
-        "CPI vật liệu xây dựng và nhà ở"
+        "giá tiêu dùng"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-        "CafeF": "https://cafef.vn/trang-chu.rss",
-        "Báo Đầu Tư (Cơ quan của Bộ KH&ĐT)": "https://baodautu.vn/thoi-su-dau-tu.rss",
-        "VnEconomy (Thời báo Kinh tế VN)": "https://vneconomy.vn/rss/kinh-te-vi-mo.rss",
-        "VietNamNet (Báo chính thống uy tín)": "https://vietnamnet.vn/rss/kinh-doanh.rss",
-        "Báo Đầu Tư (Bộ KH&ĐT)": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
-        "VnEconomy (Thời báo Kinh tế)": "https://vneconomy.vn/rss/tai-chinh-ngan-hang.rss",
-        "CafeF (Kênh dữ liệu lớn)": "https://cafef.vn/tai-chinh-ngan-hang.rss",
-        "Báo Tuổi Trẻ": "https://tuoitre.vn/rss/kinh-doanh.rss",
-        "Báo Thanh Niên": "https://thanhnien.vn/rss/kinh-doanh.rss"
+        "CafeF - Trang chủ": "https://cafef.vn/trang-chu.rss",
+        "Báo Đầu tư - Thời sự đầu tư": "https://baodautu.vn/thoi-su-dau-tu.rss",
+        "VnEconomy - Kinh tế vĩ mô": "https://vneconomy.vn/kinh-te-vi-mo.rss",
+        "VietNamNet - Kinh doanh": "https://vietnamnet.vn/rss/kinh-doanh.rss",
+        "Báo Đầu tư - Ngân hàng & Bảo hiểm": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
+        "VnEconomy - Tài chính ngân hàng": "https://vneconomy.vn/tai-chinh-ngan-hang.rss",
+        "CafeF - Vĩ mô đầu tư": "https://cafef.vn/vi-mo-dau-tu.rss",
+        "CafeF - Tài chính ngân hàng": "https://cafef.vn/tai-chinh-ngan-hang.rss",
+        "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
+        "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lạm phát trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
@@ -63,26 +56,23 @@
     },
     {
       "id": "laisuat",
-      "name": "Thị trường 1",
+      "name": "Lãi suất",
       "topics": [
         "lãi suất",
-        "lãi suất huy động",
-        "ngân hàng thương mại",
-        "tăng trưởng tín dụng",
-        "tăng trưởng huy động",
-        "cung tiền M2"
+        "điều hành lãi suất"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-        "CafeF": "https://cafef.vn/trang-chu.rss",
-        "Báo Đầu Tư (Cơ quan của Bộ KH&ĐT)": "https://baodautu.vn/thoi-su-dau-tu.rss",
-        "VnEconomy (Thời báo Kinh tế VN)": "https://vneconomy.vn/rss/kinh-te-vi-mo.rss",
-        "VietNamNet (Báo chính thống uy tín)": "https://vietnamnet.vn/rss/kinh-doanh.rss",
-        "Báo Đầu Tư (Bộ KH&ĐT)": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
-        "VnEconomy (Thời báo Kinh tế)": "https://vneconomy.vn/rss/tai-chinh-ngan-hang.rss",
-        "CafeF (Kênh dữ liệu lớn)": "https://cafef.vn/tai-chinh-ngan-hang.rss",
-        "Báo Tuổi Trẻ": "https://tuoitre.vn/rss/kinh-doanh.rss",
-        "Báo Thanh Niên": "https://thanhnien.vn/rss/kinh-doanh.rss"
+        "CafeF - Trang chủ": "https://cafef.vn/trang-chu.rss",
+        "Báo Đầu tư - Thời sự đầu tư": "https://baodautu.vn/thoi-su-dau-tu.rss",
+        "VnEconomy - Kinh tế vĩ mô": "https://vneconomy.vn/kinh-te-vi-mo.rss",
+        "VietNamNet - Kinh doanh": "https://vietnamnet.vn/rss/kinh-doanh.rss",
+        "Báo Đầu tư - Ngân hàng & Bảo hiểm": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
+        "VnEconomy - Tài chính ngân hàng": "https://vneconomy.vn/tai-chinh-ngan-hang.rss",
+        "CafeF - Vĩ mô đầu tư": "https://cafef.vn/vi-mo-dau-tu.rss",
+        "CafeF - Tài chính ngân hàng": "https://cafef.vn/tai-chinh-ngan-hang.rss",
+        "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
+        "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lãi suất trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
@@ -92,54 +82,84 @@
     },
     {
       "id": "tygia",
-      "name": "Thị trường 2 - Liên ngân hàng",
+      "name": "Tỷ giá",
       "topics": [
-        "lãi suất liên ngân hàng",
-        "lãi suất qua đêm"
+        "tỷ giá",
+        "USD",
+        "ngoại hối",
+        "đô la"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-        "CafeF": "https://cafef.vn/trang-chu.rss",
-        "Báo Đầu Tư (Cơ quan của Bộ KH&ĐT)": "https://baodautu.vn/thoi-su-dau-tu.rss",
-        "VnEconomy (Thời báo Kinh tế VN)": "https://vneconomy.vn/rss/kinh-te-vi-mo.rss",
-        "VietNamNet (Báo chính thống uy tín)": "https://vietnamnet.vn/rss/kinh-doanh.rss",
-        "Báo Đầu Tư (Bộ KH&ĐT)": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
-        "VnEconomy (Thời báo Kinh tế)": "https://vneconomy.vn/rss/tai-chinh-ngan-hang.rss",
-        "CafeF (Kênh dữ liệu lớn)": "https://cafef.vn/tai-chinh-ngan-hang.rss",
-        "Báo Tuổi Trẻ": "https://tuoitre.vn/rss/kinh-doanh.rss",
-        "Báo Thanh Niên": "https://thanhnien.vn/rss/kinh-doanh.rss"
+        "CafeF - Trang chủ": "https://cafef.vn/trang-chu.rss",
+        "Báo Đầu tư - Thời sự đầu tư": "https://baodautu.vn/thoi-su-dau-tu.rss",
+        "VnEconomy - Kinh tế vĩ mô": "https://vneconomy.vn/kinh-te-vi-mo.rss",
+        "VietNamNet - Kinh doanh": "https://vietnamnet.vn/rss/kinh-doanh.rss",
+        "Báo Đầu tư - Ngân hàng & Bảo hiểm": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
+        "VnEconomy - Tài chính ngân hàng": "https://vneconomy.vn/tai-chinh-ngan-hang.rss",
+        "CafeF - Vĩ mô đầu tư": "https://cafef.vn/vi-mo-dau-tu.rss",
+        "CafeF - Tài chính ngân hàng": "https://cafef.vn/tai-chinh-ngan-hang.rss",
+        "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
+        "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về lãi suất liên ngân hàng trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tỷ giá trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         9,
         17
       ]
     },
     {
-      "id": "batdongsan",
-      "name": "Thị trường 3 - Bơm hút OMO/Tín phiếu",
+      "id": "chungkhoan",
+      "name": "Chứng khoán",
       "topics": [
-        "tổng bơm hút ròng",
-        "OMO",
-        "Tín phiếu",
-        "Lãi suất tín phiếu"
+        "chứng khoán",
+        "VN-Index",
+        "cổ phiếu"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-        "CafeF": "https://cafef.vn/trang-chu.rss",
-        "Báo Đầu Tư (Cơ quan của Bộ KH&ĐT)": "https://baodautu.vn/thoi-su-dau-tu.rss",
-        "VnEconomy (Thời báo Kinh tế VN)": "https://vneconomy.vn/rss/kinh-te-vi-mo.rss",
-        "VietNamNet (Báo chính thống uy tín)": "https://vietnamnet.vn/rss/kinh-doanh.rss",
-        "Báo Đầu Tư (Bộ KH&ĐT)": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
-        "VnEconomy (Thời báo Kinh tế)": "https://vneconomy.vn/rss/tai-chinh-ngan-hang.rss",
-        "CafeF (Kênh dữ liệu lớn)": "https://cafef.vn/tai-chinh-ngan-hang.rss",
-        "Báo Tuổi Trẻ": "https://tuoitre.vn/rss/kinh-doanh.rss",
-        "Báo Thanh Niên": "https://thanhnien.vn/rss/kinh-doanh.rss"
+        "CafeF - Trang chủ": "https://cafef.vn/trang-chu.rss",
+        "Báo Đầu tư - Thời sự đầu tư": "https://baodautu.vn/thoi-su-dau-tu.rss",
+        "VnEconomy - Kinh tế vĩ mô": "https://vneconomy.vn/kinh-te-vi-mo.rss",
+        "VietNamNet - Kinh doanh": "https://vietnamnet.vn/rss/kinh-doanh.rss",
+        "Báo Đầu tư - Ngân hàng & Bảo hiểm": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
+        "VnEconomy - Tài chính ngân hàng": "https://vneconomy.vn/tai-chinh-ngan-hang.rss",
+        "CafeF - Vĩ mô đầu tư": "https://cafef.vn/vi-mo-dau-tu.rss",
+        "CafeF - Tài chính ngân hàng": "https://cafef.vn/tai-chinh-ngan-hang.rss",
+        "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
+        "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
-      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về tổng bơm hút OMO, tín phiếu trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về thị trường chứng khoán trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [
         10,
         18
+      ]
+    },
+    {
+      "id": "batdongsan",
+      "name": "Bất động sản",
+      "topics": [
+        "bất động sản",
+        "nhà đất",
+        "chung cư"
+      ],
+      "rss_feeds": {
+        "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
+        "CafeF - Trang chủ": "https://cafef.vn/trang-chu.rss",
+        "Báo Đầu tư - Thời sự đầu tư": "https://baodautu.vn/thoi-su-dau-tu.rss",
+        "VnEconomy - Kinh tế vĩ mô": "https://vneconomy.vn/kinh-te-vi-mo.rss",
+        "VietNamNet - Kinh doanh": "https://vietnamnet.vn/rss/kinh-doanh.rss",
+        "Báo Đầu tư - Ngân hàng & Bảo hiểm": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
+        "VnEconomy - Tài chính ngân hàng": "https://vneconomy.vn/tai-chinh-ngan-hang.rss",
+        "CafeF - Vĩ mô đầu tư": "https://cafef.vn/vi-mo-dau-tu.rss",
+        "CafeF - Tài chính ngân hàng": "https://cafef.vn/tai-chinh-ngan-hang.rss",
+        "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
+        "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
+      },
+      "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về bất động sản trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
+      "update_hours": [
+        11,
+        19
       ]
     },
     {
@@ -148,25 +168,21 @@
       "topics": [
         "tài khóa",
         "thuế",
-        "tăng thuế, giảm thuế",
         "ngân sách",
-        "đầu tư công",
-        "giải ngân đầu tư công",
-        "thâm hụt ngân sách nhà nước",
-        "thặng dư ngân sách nhà nước",
-        "phát hành trái phiếu chính phủ"
+        "đầu tư công"
       ],
       "rss_feeds": {
         "VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss",
-        "CafeF": "https://cafef.vn/trang-chu.rss",
-        "Báo Đầu Tư (Cơ quan của Bộ KH&ĐT)": "https://baodautu.vn/thoi-su-dau-tu.rss",
-        "VnEconomy (Thời báo Kinh tế VN)": "https://vneconomy.vn/rss/kinh-te-vi-mo.rss",
-        "VietNamNet (Báo chính thống uy tín)": "https://vietnamnet.vn/rss/kinh-doanh.rss",
-        "Báo Đầu Tư (Bộ KH&ĐT)": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
-        "VnEconomy (Thời báo Kinh tế)": "https://vneconomy.vn/rss/tai-chinh-ngan-hang.rss",
-        "CafeF (Kênh dữ liệu lớn)": "https://cafef.vn/tai-chinh-ngan-hang.rss",
-        "Báo Tuổi Trẻ": "https://tuoitre.vn/rss/kinh-doanh.rss",
-        "Báo Thanh Niên": "https://thanhnien.vn/rss/kinh-doanh.rss"
+        "CafeF - Trang chủ": "https://cafef.vn/trang-chu.rss",
+        "Báo Đầu tư - Thời sự đầu tư": "https://baodautu.vn/thoi-su-dau-tu.rss",
+        "VnEconomy - Kinh tế vĩ mô": "https://vneconomy.vn/kinh-te-vi-mo.rss",
+        "VietNamNet - Kinh doanh": "https://vietnamnet.vn/rss/kinh-doanh.rss",
+        "Báo Đầu tư - Ngân hàng & Bảo hiểm": "https://baodautu.vn/ngan-hang--bao-hiem.rss",
+        "VnEconomy - Tài chính ngân hàng": "https://vneconomy.vn/tai-chinh-ngan-hang.rss",
+        "CafeF - Vĩ mô đầu tư": "https://cafef.vn/vi-mo-dau-tu.rss",
+        "CafeF - Tài chính ngân hàng": "https://cafef.vn/tai-chinh-ngan-hang.rss",
+        "Tuổi Trẻ - Kinh doanh": "https://tuoitre.vn/rss/kinh-doanh.rss",
+        "Thanh Niên - Kinh doanh": "https://thanhnien.vn/rss/kinh-doanh.rss"
       },
       "prompt_instructions": "Bạn là chuyên gia kinh tế. Tóm tắt CỐT LÕI bài viết về chính sách tài khóa trong 5 đến 10 câu, nêu rõ số liệu nếu có.",
       "update_hours": [

@@ -172,7 +172,8 @@ else:
     if st.button("➕ Thêm block mới"):
         st.session_state["draft"].append({
             "id": "blk_" + uuid.uuid4().hex[:6],
-            "name": "Block mới", "topics": [], "rss_feeds": {},
+            "name": "Block mới", "topics": [],
+            "rss_feeds": {"VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss"},
             "prompt_instructions": DEFAULT_PROMPT, "update_hours": [7],
         })
         st.rerun()
@@ -189,11 +190,18 @@ else:
                          key=f"topics_{bid}", height=120,
                          help="Chỉ bài có chứa một trong các từ khóa này mới vào block.")
 
-            st.caption("Nguồn RSS (thêm dòng mới hoặc xóa dòng):")
+            st.caption("Nguồn RSS (gõ vào ô, bấm dòng trống cuối để thêm):")
             rss_rows = [{"Tên nguồn": k, "Link RSS": v}
                         for k, v in blk.get("rss_feeds", {}).items()]
-            rss_edits[bid] = st.data_editor(rss_rows, num_rows="dynamic",
-                                            use_container_width=True, key=f"rss_{bid}")
+            if not rss_rows:   # block rỗng -> cho sẵn 1 dòng trống để gõ ngay
+                rss_rows = [{"Tên nguồn": "", "Link RSS": ""}]
+            rss_edits[bid] = st.data_editor(
+                rss_rows, num_rows="dynamic", use_container_width=True,
+                key=f"rss_{bid}",
+                column_config={
+                    "Tên nguồn": st.column_config.TextColumn("Tên nguồn", width="medium"),
+                    "Link RSS": st.column_config.TextColumn("Link RSS", width="large"),
+                })
 
             st.text_area("Prompt cho AI", value=blk.get("prompt_instructions", DEFAULT_PROMPT),
                          key=f"prompt_{bid}", height=120)
