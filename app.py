@@ -543,7 +543,6 @@ def render_insight(a, ctx="", show_byline=True):
         parts.append(f"🗓️ {a['refers_to']}")
     if a.get("posted_at"):
         parts.append(f"📅 {a['posted_at'][:10]}")
-    parts.append("🤖" if a.get("source") == "tự động" else "✍️")
     meta = f"<span style='font-size:14px;color:{t['muted']}'>" + "  ·  ".join(parts) + "</span>"
 
     ts = a.get("video_timestamp")
@@ -609,62 +608,80 @@ def inject_theme_css():
 
 NAV_TOP = ["📊 Nhận định", "🧑‍💼 Chuyên gia"]
 NAV_TOOLS = ["✍️ Nhập tay", "🗂️ Quản lý nguồn", "👤 Quản lý chuyên gia", "⚙️ Cấu hình"]
+UNLOCK_PAGE = "🔒 Mở khóa Công cụ"
 if "page" not in st.session_state:
     st.session_state["page"] = NAV_TOP[0]
 cur_page = st.session_state["page"]
 inject_theme_css()
 with st.sidebar:
-    _dark = st.session_state.get("ui_theme", "light") == "dark"
-    if st.button("☀️ Chế độ Sáng" if _dark else "🌙 Chế độ Tối", use_container_width=True, key="theme_btn"):
-        st.session_state["ui_theme"] = "light" if _dark else "dark"
-        st.rerun()
     st.markdown("### Xem")
     for lbl in NAV_TOP:
         if st.button(lbl, use_container_width=True,
                      type="primary" if lbl == cur_page else "secondary", key="nv_" + lbl):
             st.session_state["page"] = lbl
             st.rerun()
-    st.markdown("<div style='height:18vh'></div>", unsafe_allow_html=True)
+    if updated_at:
+        st.caption(f"Cập nhật: **{updated_at}**")
+    st.caption(f"Tổng **{len(insights)}** nhận định")
+    st.markdown("<div style='height:14vh'></div>", unsafe_allow_html=True)
     st.divider()
-    st.caption("🔒 Công cụ")
-    for lbl in NAV_TOOLS:
-        if st.button(lbl, use_container_width=True,
-                     type="primary" if lbl == cur_page else "secondary", key="nv_" + lbl):
-            st.session_state["page"] = lbl
+    # Gạt sáng/tối ngay trên khu Công cụ
+    _dark_now = st.session_state.get("ui_theme", "light") == "dark"
+    _toggle = getattr(st, "toggle", st.checkbox)
+    _dark_new = _toggle("🌙 Chế độ Tối", value=_dark_now, key="theme_toggle")
+    if _dark_new != _dark_now:
+        st.session_state["ui_theme"] = "dark" if _dark_new else "light"
+        st.rerun()
+    # Khu Công cụ: ẩn khi chưa mở khóa
+    if st.session_state.get("is_admin"):
+        st.caption("🔓 Công cụ")
+        for lbl in NAV_TOOLS:
+            if st.button(lbl, use_container_width=True,
+                         type="primary" if lbl == cur_page else "secondary", key="nv_" + lbl):
+                st.session_state["page"] = lbl
+                st.rerun()
+        if insights:
+            st.download_button("⬇️ Tải CSV", data=insights_to_csv(insights),
+                               file_name="nhan_dinh.csv", mime="text/csv", use_container_width=True)
+    else:
+        if st.button("🔒 Công cụ", use_container_width=True,
+                     type="primary" if cur_page == UNLOCK_PAGE else "secondary", key="nv_unlock"):
+            st.session_state["page"] = UNLOCK_PAGE
             st.rerun()
 page = st.session_state["page"]
 
 if st.session_state.get("flash"):
     st.success(st.session_state.pop("flash"))
 
-# Cổng mật khẩu cho toàn bộ khu Công cụ
-if page in NAV_TOOLS and not st.session_state.get("is_admin"):
+# Trang mở khóa khu Công cụ
+if page == UNLOCK_PAGE:
     st.title("🔒 Khu Công cụ")
-    st.caption("Nhập mật khẩu để dùng Nhập tay, Quản lý nguồn, Quản lý chuyên gia, Cấu hình.")
-    try_unlock("tools")
+    st.caption("Nhập mật khẩu để hiện các công cụ: Nhập tay, Quản lý nguồn, Quản lý chuyên gia, "
+               "Cấu hình, Tải CSV.")
+    if st.session_state.get("is_admin"):
+        st.success("Đã mở khóa. Các công cụ hiện ở thanh bên trái.")
+    else:
+        try_unlock("tools")
     st.stop()
+
+# Chặn truy cập thẳng trang công cụ khi chưa mở khóa
+if page in NAV_TOOLS and not st.session_state.get("is_admin"):
+    st.session_state["page"] = UNLOCK_PAGE
+    st.rerun()
 
 
 # ==================== 📊 NHẬN ĐỊNH ====================
 
 if page == "📊 Nhận định":
     st.title("📊 Nhận định theo chủ đề")
-    with st.sidebar:
-        if updated_at:
-            st.caption(f"Cập nhật: **{updated_at}**")
-        st.caption(f"Tổng **{len(insights)}** nhận định")
-        if insights:
-            st.download_button("⬇️ Tải CSV", data=insights_to_csv(insights),
-                               file_name="nhan_dinh.csv", mime="text/csv", use_container_width=True)
-        if st.button("🔄 Tải lại", use_container_width=True):
-            st.rerun()
 
     if not insights:
         st.info("Chưa có nhận định. Dùng **Nhập tay** hoặc chờ luồng tự động.")
     else:
         c1, c2, c3, c4 = st.columns(4)
         posted_choice = c1.selectbox("Ngày đăng bài", ["3 tháng gần nhất", "6 tháng gần nhất", "Tất cả"])
-        refers_choice = c2.selectbox("Thời điểm nhận định", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
+        refers_choice = c2.selectbox("Thời điểm nhận định", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"],
+                                     index=2)
         region_filter = c3.selectbox("Khu vực", ["Tất cả"] + REGIONS, index=1)
         impact_filter = c4.selectbox("Đánh giá", ["Tất cả"] + IMPACTS)
         keep = make_keep(posted_choice, refers_choice, region_filter, impact_filter)
@@ -708,7 +725,8 @@ elif page == "🧑‍💼 Chuyên gia":
     else:
         c1, c2, c3 = st.columns(3)
         posted_choice = c1.selectbox("Ngày đăng bài", ["3 tháng gần nhất", "6 tháng gần nhất", "Tất cả"])
-        refers_choice = c2.selectbox("Thời điểm nhận định", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
+        refers_choice = c2.selectbox("Thời điểm nhận định", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"],
+                                     index=2, key="cg_refers")
         region_filter = c3.selectbox("Khu vực", ["Tất cả"] + REGIONS, index=1)
         keep = make_keep(posted_choice, refers_choice, region_filter)
         shown = [a for a in insights if keep(a)]
