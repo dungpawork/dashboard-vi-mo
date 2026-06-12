@@ -914,12 +914,18 @@ elif page == "🗂️ Quản lý nguồn":
                                              value=chan, key="chan_" + vid)
                 editors[vid] = st.data_editor(
                     [{"id": a["id"], "Tác giả": a.get("expert", ""), "Khu vực": a.get("region", "Việt Nam"),
-                      "Chủ đề": a.get("topic", ""), "Nội dung": a.get("content", "")[:120]} for a in child],
+                      "Chủ đề": a.get("topic", ""), "Đánh giá": a.get("impact", "Trung lập"),
+                      "Nội dung": a.get("content", ""), "Nói về": a.get("refers_to", ""),
+                      "Mốc": a.get("video_timestamp", "")} for a in child],
                     num_rows="dynamic", use_container_width=True, key="ed_" + vid,
-                    column_config={"id": st.column_config.TextColumn("mã", disabled=True),
+                    column_config={"id": st.column_config.TextColumn("mã", disabled=True, width="small"),
+                                   "Tác giả": st.column_config.TextColumn(width="medium"),
                                    "Khu vực": st.column_config.SelectboxColumn(options=REGIONS),
                                    "Chủ đề": st.column_config.SelectboxColumn(options=TOPICS),
-                                   "Nội dung": st.column_config.TextColumn(disabled=True, width="large")})
+                                   "Đánh giá": st.column_config.SelectboxColumn(options=IMPACTS),
+                                   "Nội dung": st.column_config.TextColumn(width="large"),
+                                   "Nói về": st.column_config.TextColumn(width="small"),
+                                   "Mốc": st.column_config.TextColumn(width="small")})
                 del_src[vid] = st.checkbox("🗑️ Xóa toàn bộ nguồn này", key="ds_" + vid)
 
         if st.button("💾 Lưu thay đổi", type="primary"):
@@ -938,6 +944,10 @@ elif page == "🗂️ Quản lý nguồn":
                     edits[rid] = {"expert": str(r.get("Tác giả") or "").strip(),
                                   "region": r.get("Khu vực") or "Việt Nam",
                                   "topic": r.get("Chủ đề") or "",
+                                  "impact": r.get("Đánh giá") or "Trung lập",
+                                  "content": str(r.get("Nội dung") or "").strip(),
+                                  "refers_to": str(r.get("Nói về") or "").strip(),
+                                  "timestamp": str(r.get("Mốc") or "").strip(),
                                   "channel": str(ch_edit.get(vid) or "").strip(),
                                   "title": title_edit[vid]}
                 deleted |= (orig[vid] - present)
@@ -959,6 +969,15 @@ elif page == "🗂️ Quản lý nguồn":
                         a["region"] = e["region"]
                     if e["topic"] in TOPICS:
                         a["topic"] = e["topic"]
+                    if e["impact"] in IMPACTS:
+                        a["impact"] = e["impact"]
+                    if e["content"]:
+                        a["content"] = e["content"]
+                    a["refers_to"] = e["refers_to"]
+                    ts = e["timestamp"]
+                    a["video_timestamp"] = ts
+                    base = a.get("video_url") or f"https://youtu.be/{a.get('video_id','')}"
+                    a["video_url_at"] = base + (f"?t={ts_to_seconds(ts)}" if ts else "")
                     a["video_title"] = e["title"]
                     if e["channel"]:
                         a["channel"] = e["channel"]
