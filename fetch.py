@@ -166,6 +166,7 @@ Bản ghi (mỗi dòng có mốc thời gian [phút:giây]):
 
 Hãy bóc các nhận định. Mỗi nhận định gồm:
 - expert: tên chuyên gia phát biểu; nếu không rõ tên thì ghi "(chủ kênh)".
+- region: khu vực kinh tế nói tới, chọn ĐÚNG MỘT: "Việt Nam", "Mỹ", "Châu Âu", "Trung Quốc", "Khác".
 - topic: chọn ĐÚNG MỘT chủ đề trong danh sách sau (chép đúng TÊN, phần trước dấu ngoặc):
 {topic_guide}
 - content: tóm tắt nhận định 2-4 câu, nêu rõ số liệu nếu có.
@@ -173,7 +174,7 @@ Hãy bóc các nhận định. Mỗi nhận định gồm:
 - timestamp: mốc thời gian dạng mm:ss nơi nói nhận định đó.
 - refers_to: thời điểm/giai đoạn nhận định nói tới (vd "Quý 3/2026"); không rõ để "".
 
-Chỉ trả về JSON: {{"insights": [{{"expert":"...","topic":"...","content":"...","impact":"...","timestamp":"mm:ss","refers_to":"..."}}]}}"""
+Chỉ trả về JSON: {{"insights": [{{"expert":"...","region":"...","topic":"...","content":"...","impact":"...","timestamp":"mm:ss","refers_to":"..."}}]}}"""
 
     for attempt in range(max_retries):
         try:
@@ -211,6 +212,9 @@ def build_insight(video, channel_name, ins, topics):
     impact = ins.get("impact", "Trung lập")
     if impact not in ("Tích cực", "Trung lập", "Tiêu cực"):
         impact = "Trung lập"
+    region = ins.get("region", "Việt Nam")
+    if region not in ("Việt Nam", "Mỹ", "Châu Âu", "Trung Quốc", "Khác"):
+        region = "Việt Nam"
     ts = ins.get("timestamp", "")
     url_at = video["url"] + (f"?t={ts_to_seconds(ts)}" if ts else "")
     raw = video["id"] + topic + ins.get("content", "")[:30]
@@ -219,7 +223,7 @@ def build_insight(video, channel_name, ins, topics):
         "video_id": video["id"], "channel": channel_name,
         "expert": ins.get("expert", "").strip() or channel_name,
         "topic": topic, "content": ins.get("content", "").strip(),
-        "impact": impact,
+        "impact": impact, "region": region,
         "video_timestamp": ts, "video_url_at": url_at,
         "video_title": video.get("title", ""), "video_url": video["url"],
         "posted_at": video.get("published", ""),

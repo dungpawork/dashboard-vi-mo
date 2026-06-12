@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 DASHBOARD NHẬN ĐỊNH CHUYÊN GIA (YouTube)
-Trang xem (góc trên trái): 📊 Nhận định, 🧑‍💼 Chuyên gia
-Công cụ (góc dưới trái):    ✍️ Nhập tay, ⚙️ Cấu hình
-Secrets: ADMIN_PASSWORD, GH_TOKEN, GH_REPO ; Thư viện: streamlit, requests, feedparser
+Xem (góc trên trái):   📊 Nhận định, 🧑‍💼 Chuyên gia
+Công cụ (góc dưới, cần mật khẩu): ✍️ Nhập tay, 🗂️ Quản lý nguồn, 👤 Quản lý chuyên gia, ⚙️ Cấu hình
+Secrets: ADMIN_PASSWORD, GH_TOKEN, GH_REPO ; Thư viện: streamlit, requests, feedparser, Pillow
 """
 
 import os
@@ -17,47 +17,52 @@ import hashlib
 import requests
 import feedparser
 import streamlit as st
+import streamlit.components.v1 as components
 from datetime import datetime, timezone, timedelta
 
 VN_TZ = timezone(timedelta(hours=7))
-
 CONFIG_FILE = "config.json"
 DATA_FILE = "data.json"
+EXPERTS_FILE = "experts.json"
 DEFAULT_MODEL = "gemini-2.5-flash-lite"
 GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.5-flash",
                  "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
 IMPACTS = ["Tích cực", "Trung lập", "Tiêu cực"]
-DEFAULT_AUTO_PROMPT = ("Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) của "
-                       "video và rút ra các NHẬN ĐỊNH kinh tế, tóm tắt 2-4 câu và đánh giá "
-                       "tác động (Tích cực/Trung lập/Tiêu cực). Ưu tiên các nhận định DỰ BÁO "
-                       "TƯƠNG LAI và SO SÁNH với con số mục tiêu/kế hoạch; nếu không có mới "
-                       "lấy nhận định hiện trạng.")
+REGIONS = ["Việt Nam", "Mỹ", "Châu Âu", "Trung Quốc", "Khác"]
+DEFAULT_AUTO_PROMPT = ("Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) của video "
+                       "và rút ra các NHẬN ĐỊNH kinh tế, tóm tắt 2-4 câu, đánh giá tác động "
+                       "(Tích cực/Trung lập/Tiêu cực) và khu vực (Việt Nam/Mỹ/Châu Âu/Trung Quốc/Khác). "
+                       "Ưu tiên nhận định DỰ BÁO TƯƠNG LAI và SO SÁNH mục tiêu/kế hoạch; không có mới lấy hiện trạng.")
 DEFAULT_MANUAL_TEMPLATE = (
-    "Bạn là trợ lý phân tích kinh tế. Với MỖI link video dưới đây, xem video và rút ra các "
-    "nhận định kinh tế quan trọng.\n\nPhân loại mỗi nhận định vào ĐÚNG MỘT chủ đề: {topics}\n\n"
-    "Mỗi video trả về: video, channel, posted_at (YYYY-MM-DD), insights[]. Mỗi nhận định: "
-    "expert, topic, content (2-4 câu), impact (Tích cực/Trung lập/Tiêu cực), timestamp (mm:ss), "
-    "refers_to (vd \"Quý 3/2026\").\n\nCHỈ trả về JSON:\n[{\"video\":\"<link>\",\"channel\":"
-    "\"...\",\"posted_at\":\"...\",\"insights\":[{\"expert\":\"...\",\"topic\":\"...\","
-    "\"content\":\"...\",\"impact\":\"...\",\"timestamp\":\"mm:ss\",\"refers_to\":\"...\"}]}]"
-    "\n\nDanh sách video:\n{links}")
+    "Bạn là trợ lý phân tích kinh tế. Với MỖI link video, xem video và rút ra các nhận định kinh tế "
+    "quan trọng. Ưu tiên nhận định DỰ BÁO TƯƠNG LAI và SO SÁNH mục tiêu/kế hoạch; không có mới lấy hiện trạng.\n\n"
+    "Phân loại mỗi nhận định vào ĐÚNG MỘT chủ đề trong danh sách sau:\n{topics}\n\n"
+    "Mỗi video trả về: video, channel, posted_at (YYYY-MM-DD), insights[]. Mỗi nhận định: expert, "
+    "region (Việt Nam/Mỹ/Châu Âu/Trung Quốc/Khác), topic (chép ĐÚNG TÊN ở trên), content (2-4 câu), "
+    "impact (Tích cực/Trung lập/Tiêu cực), timestamp (mm:ss), refers_to (vd \"Quý 3/2026\").\n\n"
+    "CHỈ trả về JSON:\n[{\"video\":\"<link>\",\"channel\":\"...\",\"posted_at\":\"...\",\"insights\":"
+    "[{\"expert\":\"...\",\"region\":\"...\",\"topic\":\"...\",\"content\":\"...\",\"impact\":\"...\","
+    "\"timestamp\":\"mm:ss\",\"refers_to\":\"...\"}]}]\n\nDanh sách video:\n{links}")
 
 
 # ==================== Cấu hình & dữ liệu ====================
 
-def load_config():
-    cfg = {}
-    if os.path.exists(CONFIG_FILE):
+def _read_json(path, default):
+    if os.path.exists(path):
         try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
         except Exception:
             pass
+    return default
+
+
+def load_config():
+    cfg = _read_json(CONFIG_FILE, {})
     return {
         "model": cfg.get("model", DEFAULT_MODEL),
         "channels": cfg.get("channels", []),
         "topics": cfg.get("topics", []),
-        "experts": cfg.get("experts", []),
         "update_hours": cfg.get("update_hours", []),
         "prompt_instructions": cfg.get("prompt_instructions", DEFAULT_AUTO_PROMPT),
         "manual_prompt_template": cfg.get("manual_prompt_template", DEFAULT_MANUAL_TEMPLATE),
@@ -65,14 +70,12 @@ def load_config():
 
 
 def load_data():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r", encoding="utf-8") as f:
-                d = json.load(f)
-            return d.get("videos", {}), d.get("insights", []), d.get("updated_at", "")
-        except Exception:
-            pass
-    return {}, [], ""
+    d = _read_json(DATA_FILE, {})
+    return d.get("videos", {}), d.get("insights", []), d.get("updated_at", "")
+
+
+def load_experts():
+    return _read_json(EXPERTS_FILE, {})
 
 
 def topic_names(cfg):
@@ -80,7 +83,6 @@ def topic_names(cfg):
 
 
 def build_topic_guide(cfg):
-    """Danh sách chủ đề kèm từ khóa, để đưa vào prompt giúp AI phân loại."""
     lines = []
     for t in cfg["topics"]:
         if isinstance(t, dict):
@@ -169,7 +171,6 @@ def ts_to_seconds(ts):
 
 
 def parse_time_tags(text):
-    """Bóc 'nói về' thành các tag: năm (2026), quý (Quý 3), tháng (Tháng 6)."""
     t = text or ""
     tags = []
     for y in re.findall(r"\b(20\d{2})\b", t):
@@ -177,51 +178,15 @@ def parse_time_tags(text):
             tags.append(y)
     quarters = re.findall(r"[Qq]uý\s*([1-4])", t) + re.findall(r"\bQ([1-4])\b", t)
     for q in quarters:
-        tag = f"Quý {q}"
-        if tag not in tags:
-            tags.append(tag)
+        if f"Quý {q}" not in tags:
+            tags.append(f"Quý {q}")
     months = re.findall(r"[Tt]háng\s*(1[0-2]|[1-9])", t)
-    if not quarters:   # tránh "Quý 3/2026" bị bắt nhầm thành Tháng 3
+    if not quarters:
         months += re.findall(r"\b(1[0-2]|[1-9])/20\d{2}", t)
     for m in months:
-        tag = f"Tháng {m}"
-        if tag not in tags:
-            tags.append(tag)
+        if f"Tháng {m}" not in tags:
+            tags.append(f"Tháng {m}")
     return tags
-
-
-def tag_sort_key(tag):
-    if tag.isdigit():
-        return (0, int(tag))
-    if tag.startswith("Quý"):
-        return (1, int(tag.split()[1]))
-    if tag.startswith("Tháng"):
-        return (2, int(tag.split()[1]))
-    return (3, 0)
-
-
-def chrono_key(refers_to):
-    """Khóa sắp xếp timeline theo thời điểm nói tới (năm*100 + tháng ước lượng)."""
-    t = refers_to or ""
-    ym = re.search(r"\b(20\d{2})\b", t)
-    year = int(ym.group(1)) if ym else 9999
-    month = 0
-    mm = re.search(r"[Tt]háng\s*(1[0-2]|[1-9])", t)
-    qm = re.search(r"[Qq]uý\s*([1-4])", t) or re.search(r"\bQ([1-4])\b", t)
-    if mm:
-        month = int(mm.group(1))
-    elif qm:
-        month = int(qm.group(1)) * 3 - 2
-    else:
-        sm = re.search(r"\b(1[0-2]|[1-9])/20\d{2}", t)
-        if sm:
-            month = int(sm.group(1))
-    return year * 100 + month
-
-
-def impact_badge(v):
-    return {"Tích cực": ":green[● Tích cực]", "Tiêu cực": ":red[● Tiêu cực]"}.get(
-        v, ":gray[● Trung lập]")
 
 
 def month_index(y, m):
@@ -234,24 +199,28 @@ def posted_index(posted_at):
 
 
 def refers_range(text):
-    """Khoảng (tháng đầu, tháng cuối) mà 'nói về' trỏ tới; None nếu không có năm."""
     t = text or ""
     ym = re.search(r"\b(20\d{2})\b", t)
     if not ym:
         return None
     y = int(ym.group(1))
-    has_quarter = bool(re.search(r"[Qq]uý", t) or re.search(r"\bQ[1-4]\b", t))
+    has_q = bool(re.search(r"[Qq]uý", t) or re.search(r"\bQ[1-4]\b", t))
     mm = re.search(r"[Tt]háng\s*(1[0-2]|[1-9])", t)
-    if not has_quarter and not mm:
+    if not has_q and not mm:
         mm = re.search(r"\b(1[0-2]|[1-9])/20\d{2}", t)
-    if mm and not has_quarter:
+    if mm and not has_q:
         mo = int(mm.group(1))
         return (month_index(y, mo), month_index(y, mo))
     qm = re.search(r"[Qq]uý\s*([1-4])", t) or re.search(r"\bQ([1-4])\b", t)
     if qm:
         q = int(qm.group(1))
         return (month_index(y, q * 3 - 2), month_index(y, q * 3))
-    return (month_index(y, 1), month_index(y, 12))   # chỉ có năm
+    return (month_index(y, 1), month_index(y, 12))
+
+
+def impact_badge(v):
+    return {"Tích cực": ":green[● Tích cực]", "Tiêu cực": ":red[● Tiêu cực]"}.get(
+        v, ":gray[● Trung lập]")
 
 
 def impact_summary_html(items):
@@ -260,8 +229,7 @@ def impact_summary_html(items):
         return "<div style='text-align:right;color:#bbb;font-size:12px;margin-top:8px'>—</div>"
     pos = sum(1 for a in items if (a.get("impact") or "Trung lập") == "Tích cực")
     neg = sum(1 for a in items if (a.get("impact") or "Trung lập") == "Tiêu cực")
-    pp = round(pos * 100 / n)
-    pn = round(neg * 100 / n)
+    pp, pn = round(pos * 100 / n), round(neg * 100 / n)
     pu = 100 - pp - pn
     return (
         "<div style='margin-top:6px'>"
@@ -273,17 +241,33 @@ def impact_summary_html(items):
         f"🟢 {pp}% · ⚪ {pu}% · 🔴 {pn}%</div></div>")
 
 
+def avatar_img(name, size=36):
+    p = EXPERTS_PROFILE.get(name, {})
+    av = p.get("avatar")
+    if av:
+        return (f"<img src='{av}' width='{size}' height='{size}' "
+                f"style='border-radius:50%;object-fit:cover;vertical-align:middle'>")
+    init = (name.strip()[:1] or "?").upper()
+    return (f"<span style='display:inline-flex;width:{size}px;height:{size}px;border-radius:50%;"
+            f"background:#dee2e6;color:#495057;align-items:center;justify-content:center;"
+            f"font-weight:600;vertical-align:middle'>{init}</span>")
+
+
+def expert_title(name):
+    return EXPERTS_PROFILE.get(name, {}).get("title", "")
+
+
 def insights_to_csv(insights):
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["Chủ đề", "Chuyên gia", "Kênh", "Nội dung", "Đánh giá", "Nói về",
+    w.writerow(["Chủ đề", "Khu vực", "Chuyên gia", "Kênh", "Nội dung", "Đánh giá", "Nói về",
                 "Tag thời gian", "Mốc video", "Link mốc", "Ngày đăng", "Nguồn", "Link video"])
     for a in insights:
-        w.writerow([a.get("topic", ""), a.get("expert", ""), a.get("channel", ""),
+        w.writerow([a.get("topic", ""), a.get("region", ""), a.get("expert", ""), a.get("channel", ""),
                     a.get("content", ""), a.get("impact", ""), a.get("refers_to", ""),
-                    "; ".join(parse_time_tags(a.get("refers_to", ""))),
-                    a.get("video_timestamp", ""), a.get("video_url_at", ""),
-                    a.get("posted_at", ""), a.get("source", ""), a.get("video_url", "")])
+                    "; ".join(parse_time_tags(a.get("refers_to", ""))), a.get("video_timestamp", ""),
+                    a.get("video_url_at", ""), a.get("posted_at", ""), a.get("source", ""),
+                    a.get("video_url", "")])
     return ("\ufeff" + buf.getvalue()).encode("utf-8")
 
 
@@ -328,6 +312,9 @@ def build_manual_insights(parsed, topics):
             impact = ins.get("impact", "Trung lập")
             if impact not in IMPACTS:
                 impact = "Trung lập"
+            region = ins.get("region", "Việt Nam")
+            if region not in REGIONS:
+                region = "Việt Nam"
             ts = ins.get("timestamp", "")
             raw = vid + topic + ins.get("content", "")[:30]
             new_insights.append({
@@ -335,7 +322,7 @@ def build_manual_insights(parsed, topics):
                 "video_id": vid, "channel": channel,
                 "expert": (ins.get("expert", "") or channel).strip(),
                 "topic": topic, "content": ins.get("content", "").strip(),
-                "impact": impact, "video_timestamp": ts,
+                "impact": impact, "region": region, "video_timestamp": ts,
                 "video_url_at": url + (f"?t={ts_to_seconds(ts)}" if ts else ""),
                 "video_title": item.get("title", ""), "video_url": url,
                 "posted_at": posted, "refers_to": ins.get("refers_to", "").strip(),
@@ -371,68 +358,126 @@ def list_channel_videos(url, limit=5):
     return out
 
 
+def make_keep(posted_choice, refers_choice, region_filter, impact_filter="Tất cả"):
+    now = datetime.now(VN_TZ)
+    cur = month_index(now.year, now.month)
+    post_start = {"3 tháng gần nhất": cur - 3, "6 tháng gần nhất": cur - 6}.get(posted_choice)
+    ref_end = {"3 tháng tiếp theo": cur + 3, "6 tháng tiếp theo": cur + 6}.get(refers_choice)
+
+    def keep(a):
+        if impact_filter != "Tất cả" and (a.get("impact") or "Trung lập") != impact_filter:
+            return False
+        if region_filter != "Tất cả" and (a.get("region") or "Việt Nam") != region_filter:
+            return False
+        if post_start is not None:
+            pi = posted_index(a.get("posted_at", ""))
+            if pi is not None and pi < post_start:
+                return False
+        if ref_end is not None:
+            rr = refers_range(a.get("refers_to", ""))
+            if rr is not None:
+                s, e = rr
+                if not (e >= cur and s <= ref_end):
+                    return False
+        return True
+    return keep
+
+
+def sort_newest(items):
+    return sorted(items, key=lambda a: posted_index(a.get("posted_at", "")) or -1, reverse=True)
+
+
 def try_unlock(key):
     pw_set = get_secret("ADMIN_PASSWORD")
     if not pw_set:
-        st.caption("⚠️ Chưa đặt ADMIN_PASSWORD nên chưa sửa được.")
+        st.warning("Chưa đặt ADMIN_PASSWORD trong Secrets nên không vào được khu Công cụ.")
         return False
     if st.session_state.get("is_admin"):
         return True
-    with st.expander("🔒 Nhập mật khẩu để sửa"):
-        pw = st.text_input("Mật khẩu quản trị", type="password", key="pw_" + key)
-        if st.button("Mở khóa", key="unlock_" + key):
-            if pw == pw_set:
-                st.session_state["is_admin"] = True
-                st.rerun()
-            else:
-                st.error("Sai mật khẩu.")
+    pw = st.text_input("Mật khẩu quản trị", type="password", key="pw_" + key)
+    if st.button("Mở khóa", key="unlock_" + key):
+        if pw == pw_set:
+            st.session_state["is_admin"] = True
+            st.rerun()
+        else:
+            st.error("Sai mật khẩu.")
     return False
 
 
-# ==================== Giao diện ====================
+# ==================== Khởi tạo ====================
 
 st.set_page_config(page_title="Nhận định chuyên gia", page_icon="🎙️", layout="wide")
 cfg = load_config()
 videos, insights, updated_at = load_data()
+EXPERTS_PROFILE = load_experts()
 TOPICS = topic_names(cfg)
 
+HAS_DIALOG = hasattr(st, "dialog")
+if HAS_DIALOG:
+    @st.dialog("Xem nhanh video")
+    def _play_dialog(vid, sec, title):
+        if title:
+            st.caption(title)
+        components.html(
+            f'<iframe width="100%" height="400" src="https://www.youtube.com/embed/{vid}'
+            f'?start={sec}&autoplay=1" frameborder="0" '
+            f'allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>',
+            height=420)
+
+
+def render_insight(a, ctx=""):
+    st.write(a.get("content", ""))
+    meta = [impact_badge(a.get("impact") or "Trung lập"), f"🌏 {a.get('region','')}"]
+    if a.get("refers_to"):
+        meta.append(f"🗓️ {a['refers_to']}")
+    if a.get("posted_at"):
+        meta.append(f"📅 {a['posted_at'][:10]}")
+    meta.append("🤖" if a.get("source") == "tự động" else "✍️")
+    st.caption("  ·  ".join(meta))
+    ts = a.get("video_timestamp")
+    if ts:
+        vid, sec = a.get("video_id", ""), ts_to_seconds(ts)
+        if HAS_DIALOG and vid:
+            if st.button(f"▶️ {ts}", key=f"pl_{ctx}_{a['id']}"):
+                _play_dialog(vid, sec, a.get("video_title", ""))
+        else:
+            st.markdown(f"[▶️ {ts}]({a.get('video_url_at','')})")
+
+
+# ==================== Điều hướng ====================
+
 NAV_TOP = ["📊 Nhận định", "🧑‍💼 Chuyên gia"]
-NAV_BOTTOM = ["✍️ Nhập tay", "⚙️ Cấu hình"]
+NAV_TOOLS = ["✍️ Nhập tay", "🗂️ Quản lý nguồn", "👤 Quản lý chuyên gia", "⚙️ Cấu hình"]
 if "page" not in st.session_state:
     st.session_state["page"] = NAV_TOP[0]
-cur = st.session_state["page"]
+cur_page = st.session_state["page"]
 with st.sidebar:
     st.markdown("### Xem")
     for lbl in NAV_TOP:
         if st.button(lbl, use_container_width=True,
-                     type="primary" if lbl == cur else "secondary", key="nv_" + lbl):
+                     type="primary" if lbl == cur_page else "secondary", key="nv_" + lbl):
             st.session_state["page"] = lbl
             st.rerun()
-    st.markdown("<div style='height:30vh'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:22vh'></div>", unsafe_allow_html=True)
     st.divider()
-    st.caption("Công cụ")
-    for lbl in NAV_BOTTOM:
+    st.caption("🔒 Công cụ")
+    for lbl in NAV_TOOLS:
         if st.button(lbl, use_container_width=True,
-                     type="primary" if lbl == cur else "secondary", key="nv_" + lbl):
+                     type="primary" if lbl == cur_page else "secondary", key="nv_" + lbl):
             st.session_state["page"] = lbl
             st.rerun()
 page = st.session_state["page"]
 
-
-def render_insight(a):
-    st.write(a.get("content", ""))
-    bits = [impact_badge(a.get("impact") or "Trung lập")]
-    if a.get("refers_to"):
-        bits.append(f"🗓️ {a['refers_to']}")
-    if a.get("video_timestamp"):
-        bits.append(f"[▶️ {a['video_timestamp']}]({a.get('video_url_at','')})")
-    if a.get("posted_at"):
-        bits.append(f"📅 {a['posted_at'][:10]}")
-    bits.append("🤖" if a.get("source") == "tự động" else "✍️")
-    st.caption("  ·  ".join(bits))
+# Cổng mật khẩu cho toàn bộ khu Công cụ
+if page in NAV_TOOLS and not st.session_state.get("is_admin"):
+    st.title("🔒 Khu Công cụ")
+    st.caption("Nhập mật khẩu để dùng Nhập tay, Quản lý nguồn, Quản lý chuyên gia, Cấu hình.")
+    try_unlock("tools")
+    st.stop()
 
 
-# -------------------------------------------------- 📊 NHẬN ĐỊNH
+# ==================== 📊 NHẬN ĐỊNH ====================
+
 if page == "📊 Nhận định":
     st.title("📊 Nhận định theo chủ đề")
     with st.sidebar:
@@ -441,190 +486,101 @@ if page == "📊 Nhận định":
         st.caption(f"Tổng **{len(insights)}** nhận định")
         if insights:
             st.download_button("⬇️ Tải CSV", data=insights_to_csv(insights),
-                               file_name="nhan_dinh.csv", mime="text/csv",
-                               use_container_width=True)
+                               file_name="nhan_dinh.csv", mime="text/csv", use_container_width=True)
         if st.button("🔄 Tải lại", use_container_width=True):
             st.rerun()
-        st.divider()
-        edit_mode = False
-        if try_unlock("nd"):
-            edit_mode = st.toggle("✏️ Chế độ sửa")
 
     if not insights:
-        st.info("Chưa có nhận định. Dùng trang **Nhập tay** hoặc chờ luồng tự động.")
+        st.info("Chưa có nhận định. Dùng **Nhập tay** hoặc chờ luồng tự động.")
     else:
-        now = datetime.now(VN_TZ)
-        cur_idx = month_index(now.year, now.month)
-        c1, c2, c3 = st.columns(3)
-        posted_choice = c1.selectbox("Ngày đăng bài",
-                                     ["3 tháng gần nhất", "6 tháng gần nhất", "Tất cả"])
-        refers_choice = c2.selectbox("Thời điểm nói tới",
-                                     ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
-        impact_filter = c3.selectbox("Đánh giá", ["Tất cả"] + IMPACTS)
+        c1, c2, c3, c4 = st.columns(4)
+        posted_choice = c1.selectbox("Ngày đăng bài", ["3 tháng gần nhất", "6 tháng gần nhất", "Tất cả"])
+        refers_choice = c2.selectbox("Thời điểm nói tới", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
+        region_filter = c3.selectbox("Khu vực", ["Tất cả"] + REGIONS, index=1)
+        impact_filter = c4.selectbox("Đánh giá", ["Tất cả"] + IMPACTS)
+        keep = make_keep(posted_choice, refers_choice, region_filter, impact_filter)
+        shown = [a for a in insights if keep(a)]
 
-        post_start = {"3 tháng gần nhất": cur_idx - 3, "6 tháng gần nhất": cur_idx - 6}.get(posted_choice)
-        ref_end = {"3 tháng tiếp theo": cur_idx + 3, "6 tháng tiếp theo": cur_idx + 6}.get(refers_choice)
+        rows = {}
+        for order, t in enumerate(cfg["topics"]):
+            nm = t["name"] if isinstance(t, dict) else t
+            r = (t.get("row", 1) if isinstance(t, dict) else 1) or 1
+            rows.setdefault(r, []).append((order, nm))
 
-        # ----- CHẾ ĐỘ SỬA -----
-        if edit_mode:
-            st.info("Sửa tên chuyên gia/kênh ngay trong bảng; xóa dòng để bỏ nhận định. "
-                    "Tích 'Xóa cả block' để xóa toàn bộ một chủ đề. Xong bấm **Lưu thay đổi**.")
-            editors, del_block, orig_ids = {}, {}, {}
-            for name in TOPICS:
-                items = [a for a in insights if a.get("topic") == name]
-                orig_ids[name] = {a["id"] for a in items}
-                with st.expander(f"📦 {name} ({len(items)})", expanded=False):
-                    rows = [{"id": a["id"], "Tác giả": a.get("expert", ""),
-                             "Kênh": a.get("channel", ""), "Nội dung": a.get("content", "")[:120]}
-                            for a in items]
-                    editors[name] = st.data_editor(
-                        rows, num_rows="dynamic", use_container_width=True, key="ed_" + name,
-                        column_config={"id": st.column_config.TextColumn("mã", disabled=True),
-                                       "Nội dung": st.column_config.TextColumn(disabled=True, width="large")})
-                    del_block[name] = st.checkbox("🗑️ Xóa toàn bộ nhận định trong block này",
-                                                  key="db_" + name)
-            if st.button("💾 Lưu thay đổi", type="primary"):
-                edits, deleted, del_topics = {}, set(), set()
-                for name in TOPICS:
-                    if del_block.get(name):
-                        del_topics.add(name)
-                        continue
-                    present = set()
-                    for r in editors.get(name, []):
-                        rid = r.get("id")
-                        if not rid:
-                            continue
-                        present.add(rid)
-                        edits[rid] = (str(r.get("Tác giả") or "").strip(),
-                                      str(r.get("Kênh") or "").strip())
-                    deleted |= (orig_ids[name] - present)
-                remote, _ = github_get_json(DATA_FILE)
-                remote = remote or {"videos": {}, "insights": []}
-                out = []
-                for a in remote.get("insights", []):
-                    if a.get("topic") in del_topics or a["id"] in deleted:
-                        continue
-                    if a["id"] in edits:
-                        e, c = edits[a["id"]]
-                        if e:
-                            a["expert"] = e
-                        if c:
-                            a["channel"] = c
-                    out.append(a)
-                payload = {"updated_at": "(vừa sửa tay)", "videos": remote.get("videos", {}),
-                           "insights": out}
-                ok, msg = github_put_json(DATA_FILE, payload, "Sua nhan dinh")
-                st.success(msg + " Tải lại sau ~1 phút.") if ok else st.error(msg)
+        def render_topic(name):
+            items = sort_newest([a for a in shown if a.get("topic") == name])
+            with st.container(border=True, height=480):
+                tcol, scol = st.columns([3, 2])
+                tcol.markdown(f"#### {name}")
+                scol.markdown(impact_summary_html(items), unsafe_allow_html=True)
+                st.caption(f"{len(items)} nhận định")
+                by_expert = {}
+                for a in items:
+                    by_expert.setdefault(a.get("expert", "(không rõ)"), []).append(a)
+                if not items:
+                    st.caption("_Chưa có nhận định._")
+                for expert, arr in by_expert.items():
+                    ttl = expert_title(expert)
+                    st.markdown(f"{avatar_img(expert, 28)} **{expert}**"
+                                + (f" · <span style='color:#888;font-size:12px'>{ttl}</span>" if ttl else ""),
+                                unsafe_allow_html=True)
+                    for a in arr:
+                        render_insight(a, ctx="nd")
+                    st.divider()
 
-        # ----- CHẾ ĐỘ XEM -----
-        else:
-            def keep(a):
-                if impact_filter != "Tất cả" and (a.get("impact") or "Trung lập") != impact_filter:
-                    return False
-                if post_start is not None:
-                    pi = posted_index(a.get("posted_at", ""))
-                    if pi is not None and pi < post_start:
-                        return False
-                if ref_end is not None:
-                    rr = refers_range(a.get("refers_to", ""))
-                    if rr is not None:
-                        s, e = rr
-                        if not (e >= cur_idx and s <= ref_end):
-                            return False
-                return True
-            shown = [a for a in insights if keep(a)]
-            rows = {}
-            for order, t in enumerate(cfg["topics"]):
-                nm = t["name"] if isinstance(t, dict) else t
-                r = (t.get("row", 1) if isinstance(t, dict) else 1) or 1
-                rows.setdefault(r, []).append((order, nm))
+        for r in sorted(rows.keys()):
+            row_items = [n for _, n in sorted(rows[r], key=lambda x: x[0])]
+            cols = st.columns(len(row_items))
+            for col, name in zip(cols, row_items):
+                with col:
+                    render_topic(name)
 
-            def render_topic(name):
-                items = [a for a in shown if a.get("topic") == name]
-                with st.container(border=True, height=480):
-                    tcol, scol = st.columns([3, 2])
-                    tcol.markdown(f"#### {name}")
-                    scol.markdown(impact_summary_html(items), unsafe_allow_html=True)
-                    st.caption(f"{len(items)} nhận định")
-                    by_expert = {}
-                    for a in items:
-                        by_expert.setdefault(a.get("expert", "(không rõ)"), []).append(a)
-                    if not items:
-                        st.caption("_Chưa có nhận định._")
-                    for expert, arr in by_expert.items():
-                        st.markdown(f"**🧑‍💼 {expert}**")
-                        for a in arr:
-                            render_insight(a)
-                        st.divider()
 
-            for r in sorted(rows.keys()):
-                row_items = [n for _, n in sorted(rows[r], key=lambda x: x[0])]
-                cols = st.columns(len(row_items))
-                for col, name in zip(cols, row_items):
-                    with col:
-                        render_topic(name)
+# ==================== 🧑‍💼 CHUYÊN GIA ====================
 
-# -------------------------------------------------- 🧑‍💼 CHUYÊN GIA
 elif page == "🧑‍💼 Chuyên gia":
     st.title("🧑‍💼 Nhận định theo chuyên gia")
     if not insights:
         st.info("Chưa có nhận định.")
     else:
-        # danh sách chuyên gia: ưu tiên cấu hình, nếu trống thì tự suy từ dữ liệu
-        cfg_experts = cfg["experts"]
-        if cfg_experts:
-            expert_rows = {}
-            for order, e in enumerate(cfg_experts):
-                nm = e["name"] if isinstance(e, dict) else e
-                r = (e.get("row", 1) if isinstance(e, dict) else 1) or 1
-                expert_rows.setdefault(r, []).append((order, nm))
-        else:
-            names = list(dict.fromkeys(a.get("expert", "(không rõ)") for a in insights))
-            expert_rows = {1: [(i, n) for i, n in enumerate(names)]}
+        c1, c2, c3 = st.columns(3)
+        posted_choice = c1.selectbox("Ngày đăng bài", ["3 tháng gần nhất", "6 tháng gần nhất", "Tất cả"])
+        refers_choice = c2.selectbox("Thời điểm nói tới", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
+        region_filter = c3.selectbox("Khu vực", ["Tất cả"] + REGIONS, index=1)
+        keep = make_keep(posted_choice, refers_choice, region_filter)
+        shown = [a for a in insights if keep(a)]
 
-        c1, c2 = st.columns(2)
-        topic_filter = c1.selectbox("Lọc theo chủ đề", ["Tất cả"] + TOPICS)
-        all_tags = sorted({tag for a in insights for tag in parse_time_tags(a.get("refers_to", ""))},
-                          key=tag_sort_key)
-        time_filter = c2.selectbox("Lọc theo thời điểm nói tới", ["Tất cả"] + all_tags)
+        # mỗi chuyên gia một dòng ngang; sắp theo số nhận định giảm dần
+        experts = {}
+        for a in shown:
+            experts.setdefault(a.get("expert", "(không rõ)"), []).append(a)
+        for name in sorted(experts, key=lambda k: -len(experts[k])):
+            items = sort_newest(experts[name])
+            with st.container(border=True):
+                left, right = st.columns([1, 2])
+                with left:
+                    ttl = expert_title(name)
+                    st.markdown(f"{avatar_img(name, 56)}", unsafe_allow_html=True)
+                    st.markdown(f"### {name}")
+                    if ttl:
+                        st.caption(ttl)
+                    st.markdown("**Góc nhìn chuyên gia**")
+                    st.markdown(impact_summary_html(items), unsafe_allow_html=True)
+                    st.caption(f"{len(items)} nhận định")
+                with right:
+                    subs = st.columns(2)
+                    for i, topic in enumerate(TOPICS):
+                        titems = [a for a in items if a.get("topic") == topic]
+                        with subs[i % 2]:
+                            st.markdown(f"**{topic}**")
+                            if not titems:
+                                st.caption("—")
+                            for a in titems:
+                                render_insight(a, ctx="cg")
 
-        def render_expert(name):
-            items = [a for a in insights if a.get("expert") == name]
-            if topic_filter != "Tất cả":
-                items = [a for a in items if a.get("topic") == topic_filter]
-            if time_filter != "Tất cả":
-                items = [a for a in items if time_filter in parse_time_tags(a.get("refers_to", ""))]
-            with st.container(border=True, height=520):
-                st.markdown(f"#### 🧑‍💼 {name}")
-                st.caption(f"{len(items)} nhận định")
-                # timeline: nhóm theo thời điểm nói tới, sắp theo trình tự
-                groups = {}
-                for a in items:
-                    key = a.get("refers_to", "").strip() or "(không rõ thời điểm)"
-                    groups.setdefault(key, []).append(a)
-                ordered = sorted(groups.keys(), key=lambda k: chrono_key(k) if k != "(không rõ thời điểm)" else 9999999)
-                if not items:
-                    st.caption("_Chưa có nhận định._")
-                for period in ordered:
-                    st.markdown(f"**🗓️ {period}**")
-                    for a in groups[period]:
-                        st.write(f"[{a.get('topic','')}] {a.get('content','')}")
-                        bits = [impact_badge(a.get("impact") or "Trung lập")]
-                        if a.get("video_timestamp"):
-                            bits.append(f"[▶️ {a['video_timestamp']}]({a.get('video_url_at','')})")
-                        if a.get("posted_at"):
-                            bits.append(f"📅 {a['posted_at'][:10]}")
-                        st.caption("  ·  ".join(bits))
-                    st.divider()
 
-        for r in sorted(expert_rows.keys()):
-            row_items = [n for _, n in sorted(expert_rows[r], key=lambda x: x[0])]
-            cols = st.columns(len(row_items))
-            for col, name in zip(cols, row_items):
-                with col:
-                    render_expert(name)
+# ==================== ✍️ NHẬP TAY ====================
 
-# -------------------------------------------------- ✍️ NHẬP TAY
 elif page == "✍️ Nhập tay":
     st.title("✍️ Nhập nhận định thủ công")
     st.caption("① Dán link → ② Copy prompt cho Gemini → ③ Dán kết quả → ④ Xem trước & Lưu.")
@@ -632,9 +588,7 @@ elif page == "✍️ Nhập tay":
     st.subheader("① Dán link video (mỗi dòng một link)")
     link_text = st.text_area("Link video", height=110,
                              placeholder="https://youtu.be/...\nhttps://www.youtube.com/watch?v=...")
-    reprocess = st.checkbox("🔁 Làm lại cả video đã xử lý trước đó",
-                            help="Mặc định hệ thống bỏ qua video đã làm. Tích ô này nếu bạn "
-                                 "đã xóa nhận định của một video và muốn xử lý lại nó.")
+    reprocess = st.checkbox("🔁 Làm lại cả video đã xử lý trước đó")
     raw_links = [l.strip() for l in link_text.splitlines() if l.strip()]
     new_links, done_links, bad = [], [], 0
     for l in raw_links:
@@ -642,14 +596,10 @@ elif page == "✍️ Nhập tay":
         if not vid:
             bad += 1
             continue
-        if vid in videos and not reprocess:
-            done_links.append(l)
-        else:
-            new_links.append(l)
+        (done_links if (vid in videos and not reprocess) else new_links).append(l)
     new_links = list(dict.fromkeys(new_links))
     if done_links:
-        st.caption(f"↩️ Bỏ qua {len(done_links)} video đã xử lý "
-                   "(tích ô '🔁 Làm lại' ở trên nếu muốn xử lý lại).")
+        st.caption(f"↩️ Bỏ qua {len(done_links)} video đã xử lý (tích '🔁 Làm lại' nếu muốn).")
     if bad:
         st.caption(f"⚠️ {bad} dòng không phải link YouTube.")
 
@@ -657,7 +607,7 @@ elif page == "✍️ Nhập tay":
     if new_links:
         block = (cfg["manual_prompt_template"].replace("{topics}", build_topic_guide(cfg))
                  .replace("{links}", "\n".join(new_links)))
-        st.caption(f"Gồm {len(new_links)} video mới — bấm biểu tượng copy ở góc khối:")
+        st.caption(f"Gồm {len(new_links)} video — bấm biểu tượng copy ở góc khối:")
         st.code(block, language="text")
     else:
         st.info("Dán ít nhất một link mới ở bước ① để tạo khối prompt.")
@@ -682,7 +632,7 @@ elif page == "✍️ Nhập tay":
         st.write(f"**Xem trước: {len(ni)} nhận định** / {len(preview['videos'])} video"
                  + (f" · {preview['skipped']} bỏ qua" if preview["skipped"] else ""))
         if ni:
-            st.dataframe([{"Chủ đề": a["topic"], "Chuyên gia": a["expert"], "Kênh": a["channel"],
+            st.dataframe([{"Chủ đề": a["topic"], "Khu vực": a["region"], "Chuyên gia": a["expert"],
                            "Đánh giá": a["impact"], "Nội dung": a["content"][:70],
                            "Mốc": a["video_timestamp"], "Nói về": a["refers_to"]} for a in ni],
                          use_container_width=True, hide_index=True)
@@ -701,16 +651,133 @@ elif page == "✍️ Nhập tay":
                     st.success(f"Đã lưu {added} nhận định. Mở trang Nhận định và Tải lại sau ~1 phút.")
                 else:
                     st.error(msg)
-        else:
-            st.warning("Không tách được nhận định nào — kiểm tra định dạng Gemini trả về.")
 
-# -------------------------------------------------- ⚙️ CẤU HÌNH
+
+# ==================== 🗂️ QUẢN LÝ NGUỒN ====================
+
+elif page == "🗂️ Quản lý nguồn":
+    st.title("🗂️ Quản lý nguồn (video)")
+    st.caption("Mỗi video là một nguồn, có thể chứa nhiều nhận định. Sửa/xóa nguồn sẽ ảnh hưởng "
+               "toàn bộ nhận định bên trong.")
+    by_video = {}
+    for a in insights:
+        by_video.setdefault(a.get("video_id", ""), []).append(a)
+    if not by_video:
+        st.info("Chưa có nguồn nào.")
+    else:
+        st.subheader("Thống kê nguồn")
+        st.dataframe([{"Kênh": videos.get(vid, {}).get("channel", a0[0].get("channel", "")),
+                       "Tiêu đề": videos.get(vid, {}).get("title", a0[0].get("video_title", "")),
+                       "Ngày đăng": (videos.get(vid, {}).get("published", "") or a0[0].get("posted_at", ""))[:10],
+                       "Số nhận định": len(a0)}
+                      for vid, a0 in by_video.items()],
+                     use_container_width=True, hide_index=True)
+
+        st.subheader("Sửa / xóa từng nguồn")
+        editors, ch_edit, del_src, orig = {}, {}, {}, {}
+        for vid, child in by_video.items():
+            meta = videos.get(vid, {})
+            title = meta.get("title", "") or (child[0].get("video_title", ""))
+            chan = meta.get("channel", "") or child[0].get("channel", "")
+            orig[vid] = {a["id"] for a in child}
+            with st.expander(f"🎬 {chan} — {title[:55]} ({len(child)} nhận định)"):
+                ch_edit[vid] = st.text_input("Tên kênh (áp cho mọi nhận định của nguồn)",
+                                             value=chan, key="chan_" + vid)
+                editors[vid] = st.data_editor(
+                    [{"id": a["id"], "Tác giả": a.get("expert", ""), "Khu vực": a.get("region", "Việt Nam"),
+                      "Chủ đề": a.get("topic", ""), "Nội dung": a.get("content", "")[:120]} for a in child],
+                    num_rows="dynamic", use_container_width=True, key="ed_" + vid,
+                    column_config={"id": st.column_config.TextColumn("mã", disabled=True),
+                                   "Khu vực": st.column_config.SelectboxColumn(options=REGIONS),
+                                   "Chủ đề": st.column_config.SelectboxColumn(options=TOPICS),
+                                   "Nội dung": st.column_config.TextColumn(disabled=True, width="large")})
+                del_src[vid] = st.checkbox("🗑️ Xóa toàn bộ nguồn này", key="ds_" + vid)
+
+        if st.button("💾 Lưu thay đổi", type="primary"):
+            edits, deleted, del_videos = {}, set(), set()
+            for vid in by_video:
+                if del_src.get(vid):
+                    del_videos.add(vid)
+                    continue
+                present = set()
+                for r in editors.get(vid, []):
+                    rid = r.get("id")
+                    if not rid:
+                        continue
+                    present.add(rid)
+                    edits[rid] = {"expert": str(r.get("Tác giả") or "").strip(),
+                                  "region": r.get("Khu vực") or "Việt Nam",
+                                  "topic": r.get("Chủ đề") or "",
+                                  "channel": str(ch_edit.get(vid) or "").strip()}
+                deleted |= (orig[vid] - present)
+            remote, _ = github_get_json(DATA_FILE)
+            remote = remote or {"videos": {}, "insights": []}
+            rvideos = {k: v for k, v in remote.get("videos", {}).items() if k not in del_videos}
+            for vid in del_videos:
+                pass
+            out = []
+            for a in remote.get("insights", []):
+                if a.get("video_id") in del_videos or a["id"] in deleted:
+                    continue
+                if a["id"] in edits:
+                    e = edits[a["id"]]
+                    if e["expert"]:
+                        a["expert"] = e["expert"]
+                    if e["region"] in REGIONS:
+                        a["region"] = e["region"]
+                    if e["topic"] in TOPICS:
+                        a["topic"] = e["topic"]
+                    if e["channel"]:
+                        a["channel"] = e["channel"]
+                        if a.get("video_id") in rvideos:
+                            rvideos[a["video_id"]]["channel"] = e["channel"]
+                out.append(a)
+            payload = {"updated_at": "(vừa sửa nguồn)", "videos": rvideos, "insights": out}
+            ok, msg = github_put_json(DATA_FILE, payload, "Quan ly nguon")
+            st.success(msg + " Tải lại sau ~1 phút.") if ok else st.error(msg)
+
+
+# ==================== 👤 QUẢN LÝ CHUYÊN GIA ====================
+
+elif page == "👤 Quản lý chuyên gia":
+    st.title("👤 Quản lý chuyên gia")
+    st.caption("Cập nhật chức vụ và ảnh đại diện cho từng chuyên gia.")
+    names = sorted({a.get("expert", "") for a in insights if a.get("expert")})
+    if not names:
+        st.info("Chưa có chuyên gia nào trong dữ liệu.")
+    else:
+        sel = st.selectbox("Chọn chuyên gia", names)
+        prof = EXPERTS_PROFILE.get(sel, {})
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.markdown("Ảnh hiện tại:")
+            st.markdown(avatar_img(sel, 96), unsafe_allow_html=True)
+        with col2:
+            title = st.text_input("Chức vụ", value=prof.get("title", ""))
+            up = st.file_uploader("Ảnh đại diện (PNG/JPG)", type=["png", "jpg", "jpeg"])
+        if st.button("💾 Lưu hồ sơ", type="primary"):
+            avatar = prof.get("avatar", "")
+            if up is not None:
+                try:
+                    from PIL import Image
+                    im = Image.open(io.BytesIO(up.read())).convert("RGB")
+                    im.thumbnail((96, 96))
+                    out = io.BytesIO()
+                    im.save(out, format="JPEG", quality=80)
+                    avatar = "data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode()
+                except Exception as e:
+                    st.error(f"Không xử lý được ảnh: {e}")
+            remote, _ = github_get_json(EXPERTS_FILE)
+            remote = remote or {}
+            remote[sel] = {"title": title.strip(), "avatar": avatar}
+            ok, msg = github_put_json(EXPERTS_FILE, remote, "Cap nhat ho so chuyen gia")
+            st.success(msg + " Tải lại sau ~1 phút.") if ok else st.error(msg)
+
+
+# ==================== ⚙️ CẤU HÌNH ====================
+
 else:
     st.title("⚙️ Cấu hình")
-    if not try_unlock("cfg"):
-        st.stop()
-    st.success("Đã mở khóa. Chỉnh xong bấm **Lưu tất cả** ở cuối.")
-
     if "model_select" not in st.session_state:
         st.session_state["model_select"] = cfg["model"] if cfg["model"] in GEMINI_MODELS else DEFAULT_MODEL
     st.subheader("Model AI (luồng tự động)")
@@ -726,8 +793,8 @@ else:
                              column_config={"Tên kênh": st.column_config.TextColumn(width="medium"),
                                             "Link kênh": st.column_config.TextColumn(width="large")})
 
-    st.subheader("Chủ đề — trang Nhận định (Hàng = bố cục, Từ khóa = gợi ý cho AI)")
-    st.caption("Từ khóa ngăn nhau bằng dấu phẩy; được đưa vào prompt để AI phân loại đúng chủ đề.")
+    st.subheader("Chủ đề (Hàng = bố cục, Từ khóa = gợi ý cho AI)")
+    st.caption("Từ khóa ngăn nhau bằng dấu phẩy.")
     tp_rows = [{"Tên chủ đề": (t["name"] if isinstance(t, dict) else t),
                 "Hàng": (t.get("row", 1) if isinstance(t, dict) else 1),
                 "Từ khóa": ", ".join(t.get("keywords", [])) if isinstance(t, dict) else ""}
@@ -737,20 +804,10 @@ else:
                                             "Hàng": st.column_config.NumberColumn(min_value=1, max_value=20, step=1),
                                             "Từ khóa": st.column_config.TextColumn(width="large")})
 
-    st.subheader("Chuyên gia — trang Chuyên gia (cột Hàng = bố cục)")
-    st.caption("Tên phải khớp tên chuyên gia trong dữ liệu. Để trống bảng này thì trang "
-               "Chuyên gia tự liệt kê mọi chuyên gia tìm thấy.")
-    ex_rows = [{"Tên chuyên gia": (e["name"] if isinstance(e, dict) else e),
-                "Hàng": (e.get("row", 1) if isinstance(e, dict) else 1)} for e in cfg["experts"]] \
-        or [{"Tên chuyên gia": "", "Hàng": 1}]
-    ex_edit = st.data_editor(ex_rows, num_rows="dynamic", use_container_width=True, key="ex_editor",
-                             column_config={"Tên chuyên gia": st.column_config.TextColumn(width="large"),
-                                            "Hàng": st.column_config.NumberColumn(min_value=1, max_value=20, step=1)})
-
     st.subheader("Prompt luồng tự động")
     auto_prompt = st.text_area("Prompt (AI đọc transcript)", value=cfg["prompt_instructions"], height=110)
     st.subheader("Prompt mẫu cho Gemini (nhập tay)")
-    st.caption("Giữ nguyên {topics} và {links} — hệ thống tự điền.")
+    st.caption("Giữ nguyên {topics} và {links}.")
     manual_tpl = st.text_area("Prompt mẫu", value=cfg["manual_prompt_template"], height=200)
 
     st.markdown("---")
@@ -761,17 +818,13 @@ else:
         topics = [{"name": (r.get("Tên chủ đề") or "").strip(), "row": int(r.get("Hàng", 1) or 1),
                    "keywords": [k.strip() for k in (r.get("Từ khóa") or "").split(",") if k.strip()]}
                   for r in tp_edit if (r.get("Tên chủ đề") or "").strip()]
-        experts = [{"name": (r.get("Tên chuyên gia") or "").strip(), "row": int(r.get("Hàng", 1) or 1)}
-                   for r in ex_edit if (r.get("Tên chuyên gia") or "").strip()]
         if not channels or not topics:
             st.error("Cần ít nhất một kênh và một chủ đề.")
         else:
-            new_cfg = {
-                "model": st.session_state.get("model_select", DEFAULT_MODEL),
-                "update_hours": sorted(st.session_state.get("hours_select", [])),
-                "channels": channels, "topics": topics, "experts": experts,
-                "prompt_instructions": auto_prompt.strip() or DEFAULT_AUTO_PROMPT,
-                "manual_prompt_template": manual_tpl.strip() or DEFAULT_MANUAL_TEMPLATE,
-            }
+            new_cfg = {"model": st.session_state.get("model_select", DEFAULT_MODEL),
+                       "update_hours": sorted(st.session_state.get("hours_select", [])),
+                       "channels": channels, "topics": topics,
+                       "prompt_instructions": auto_prompt.strip() or DEFAULT_AUTO_PROMPT,
+                       "manual_prompt_template": manual_tpl.strip() or DEFAULT_MANUAL_TEMPLATE}
             ok, msg = github_put_json(CONFIG_FILE, new_cfg, "Cap nhat cau hinh")
             st.success(msg + " Khởi động lại sau ~1 phút.") if ok else st.error(msg)
