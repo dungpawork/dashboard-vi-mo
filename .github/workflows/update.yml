@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Cai thu vien
-        run: pip install feedparser google-genai requests
+        run: pip install feedparser google-genai requests cloudscraper
       - name: Quet kenh va goi y video
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
