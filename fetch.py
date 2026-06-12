@@ -153,10 +153,11 @@ Hãy bóc các nhận định. Mỗi nhận định gồm:
 - expert: tên chuyên gia phát biểu; nếu không rõ tên thì ghi "(chủ kênh)".
 - topic: chọn ĐÚNG MỘT trong: {topics}
 - content: tóm tắt nhận định 2-4 câu, nêu rõ số liệu nếu có.
+- impact: đánh giá tác động tới kinh tế/thị trường, chọn ĐÚNG MỘT: "Tích cực", "Trung lập", "Tiêu cực".
 - timestamp: mốc thời gian dạng mm:ss nơi nói nhận định đó.
-- refers_to: thời điểm/giai đoạn nhận định nói tới (vd "Tháng 6/2026"); không rõ để "".
+- refers_to: thời điểm/giai đoạn nhận định nói tới (vd "Quý 3/2026"); không rõ để "".
 
-Chỉ trả về JSON: {{"insights": [{{"expert":"...","topic":"...","content":"...","timestamp":"mm:ss","refers_to":"..."}}]}}"""
+Chỉ trả về JSON: {{"insights": [{{"expert":"...","topic":"...","content":"...","impact":"...","timestamp":"mm:ss","refers_to":"..."}}]}}"""
 
     for attempt in range(max_retries):
         try:
@@ -191,6 +192,9 @@ def build_insight(video, channel_name, ins, topics):
     topic = ins.get("topic", "")
     if topic not in topics:
         topic = topics[-1] if topics else "Khác"
+    impact = ins.get("impact", "Trung lập")
+    if impact not in ("Tích cực", "Trung lập", "Tiêu cực"):
+        impact = "Trung lập"
     ts = ins.get("timestamp", "")
     url_at = video["url"] + (f"?t={ts_to_seconds(ts)}" if ts else "")
     raw = video["id"] + topic + ins.get("content", "")[:30]
@@ -199,6 +203,7 @@ def build_insight(video, channel_name, ins, topics):
         "video_id": video["id"], "channel": channel_name,
         "expert": ins.get("expert", "").strip() or channel_name,
         "topic": topic, "content": ins.get("content", "").strip(),
+        "impact": impact,
         "video_timestamp": ts, "video_url_at": url_at,
         "video_title": video.get("title", ""), "video_url": video["url"],
         "posted_at": video.get("published", ""),
