@@ -812,7 +812,7 @@ elif page == "✍️ Nhập tay":
                     .replace("{links}", url))
 
         def sugg_row(vid, v, key_prefix):
-            c = st.columns([0.5, 4.4, 1.5, 0.7, 1.4])
+            c = st.columns([0.4, 3.8, 1.3, 2.0, 0.6, 1.1])
             sel = c[0].checkbox(" ", key=f"{key_prefix}_{vid}", label_visibility="collapsed")
             c[1].markdown(f"**{v.get('title','')}**  \n"
                           f"<span style='font-size:13px;color:{TH()['muted']}'>"
@@ -821,20 +821,19 @@ elif page == "✍️ Nhập tay":
             c[2].markdown(f"<span style='font-size:13px'>🏷️ {v.get('topic','')}</span>",
                           unsafe_allow_html=True)
             url = v.get("url") or f"https://youtu.be/{vid}"
-            with c[3]:
+            c[3].code(url, language="text")
+            with c[4]:
                 if HAS_POPOVER:
                     with st.popover("▶"):
                         components.html(yt_iframe(vid, 0, 210), height=220)
-            with c[4]:
+            with c[5]:
                 if HAS_POPOVER and sel:
                     with st.popover("📋 Prompt"):
-                        st.caption("🧞 Dùng Gem: chỉ cần copy LINK này dán vào Gem:")
-                        st.code(url, language="text")
-                        st.caption("Hoặc chưa có Gem: copy PROMPT đầy đủ dán vào Gemini thường:")
+                        st.caption("Chưa dùng Gem? Copy PROMPT đầy đủ này dán vào Gemini thường:")
                         st.code(one_video_prompt(url), language="text")
                 else:
                     st.button("📋 Prompt", disabled=True, key=f"pb_{key_prefix}_{vid}",
-                              help="Tích chọn video trước để lấy prompt")
+                              help="Tích chọn video trước để lấy prompt đầy đủ (nếu không dùng Gem)")
             return sel
 
         for vid, v in sorted(pending.items(), key=lambda kv: kv[1].get("published", ""), reverse=True):
