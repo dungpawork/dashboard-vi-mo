@@ -563,6 +563,9 @@ elif page == "✍️ Nhập tay":
     st.subheader("① Dán link video (mỗi dòng một link)")
     link_text = st.text_area("Link video", height=110,
                              placeholder="https://youtu.be/...\nhttps://www.youtube.com/watch?v=...")
+    reprocess = st.checkbox("🔁 Làm lại cả video đã xử lý trước đó",
+                            help="Mặc định hệ thống bỏ qua video đã làm. Tích ô này nếu bạn "
+                                 "đã xóa nhận định của một video và muốn xử lý lại nó.")
     raw_links = [l.strip() for l in link_text.splitlines() if l.strip()]
     new_links, done_links, bad = [], [], 0
     for l in raw_links:
@@ -570,10 +573,14 @@ elif page == "✍️ Nhập tay":
         if not vid:
             bad += 1
             continue
-        (done_links if vid in videos else new_links).append(l)
+        if vid in videos and not reprocess:
+            done_links.append(l)
+        else:
+            new_links.append(l)
     new_links = list(dict.fromkeys(new_links))
     if done_links:
-        st.caption(f"↩️ Bỏ qua {len(done_links)} video đã xử lý.")
+        st.caption(f"↩️ Bỏ qua {len(done_links)} video đã xử lý "
+                   "(tích ô '🔁 Làm lại' ở trên nếu muốn xử lý lại).")
     if bad:
         st.caption(f"⚠️ {bad} dòng không phải link YouTube.")
 
