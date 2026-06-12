@@ -698,7 +698,7 @@ if page in NAV_TOOLS and not st.session_state.get("is_admin"):
 # ==================== 📊 NHẬN ĐỊNH ====================
 
 if page == "📊 Nhận định":
-    st.title("📊 Nhận định theo chủ đề")
+    st.title("📊 Nhận định của Chuyên gia - Chọn lọc bởi DungPham.vn")
 
     if not insights:
         st.info("Chưa có nhận định. Dùng **Nhập tay** hoặc chờ luồng tự động.")
