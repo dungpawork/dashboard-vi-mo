@@ -1,18 +1,27 @@
 {
   "model": "gemini-2.5-flash-lite",
   "update_hours": [
-    7
+    7,
+    12,
+    16,
+    20,
+    22
   ],
   "channels": [
     {
-      "id": "ch_taichinh",
+      "id": "ch_ecc540",
       "name": "Tài chính & Kinh doanh TV",
       "url": "https://youtube.com/@taichinhkinhdoanhtv"
     },
     {
-      "id": "ch_yeukinhte",
+      "id": "ch_dc8c68",
       "name": "Yêu Kinh Tế",
       "url": "https://youtube.com/@yeukinhte"
+    },
+    {
+      "id": "ch_cec0db",
+      "name": "Lãng Tử Buôn Nước Mắm",
+      "url": "https://www.youtube.com/@langtubuonnuocmam2166"
     }
   ],
   "topics": [
