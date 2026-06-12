@@ -21,7 +21,7 @@ import feedparser
 DEFAULT_MODEL = "gemini-2.5-flash-lite"
 DEFAULT_PROMPT = ("Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) của "
                   "video và rút ra các NHẬN ĐỊNH kinh tế quan trọng, tóm tắt mỗi nhận "
-                  "định 2-4 câu, nêu rõ số liệu nếu có.")
+                  "định 2-4 câu, nêu rõ số liệu nếu có. Ưu tiên nhận định dự báo tương lai và so sánh với mục tiêu/kế hoạch.")
 
 MAX_VIDEOS_PER_CHANNEL = 3     # mỗi kênh xử lý tối đa bao nhiêu video mới mỗi lần
 MAX_TRANSCRIPT_CHARS = 12000   # cắt transcript để giới hạn token
