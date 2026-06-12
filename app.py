@@ -17,6 +17,9 @@ import hashlib
 import requests
 import feedparser
 import streamlit as st
+from datetime import datetime, timezone, timedelta
+
+VN_TZ = timezone(timedelta(hours=7))
 
 CONFIG_FILE = "config.json"
 DATA_FILE = "data.json"
@@ -26,7 +29,9 @@ GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.5-f
 IMPACTS = ["Tích cực", "Trung lập", "Tiêu cực"]
 DEFAULT_AUTO_PROMPT = ("Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) của "
                        "video và rút ra các NHẬN ĐỊNH kinh tế, tóm tắt 2-4 câu và đánh giá "
-                       "tác động (Tích cực/Trung lập/Tiêu cực).")
+                       "tác động (Tích cực/Trung lập/Tiêu cực). Ưu tiên các nhận định DỰ BÁO "
+                       "TƯƠNG LAI và SO SÁNH với con số mục tiêu/kế hoạch; nếu không có mới "
+                       "lấy nhận định hiện trạng.")
 DEFAULT_MANUAL_TEMPLATE = (
     "Bạn là trợ lý phân tích kinh tế. Với MỖI link video dưới đây, xem video và rút ra các "
     "nhận định kinh tế quan trọng.\n\nPhân loại mỗi nhận định vào ĐÚNG MỘT chủ đề: {topics}\n\n"
@@ -219,6 +224,55 @@ def impact_badge(v):
         v, ":gray[● Trung lập]")
 
 
+def month_index(y, m):
+    return y * 12 + (m - 1)
+
+
+def posted_index(posted_at):
+    m = re.search(r"(20\d\d)[-/](\d{1,2})", posted_at or "")
+    return month_index(int(m.group(1)), int(m.group(2))) if m else None
+
+
+def refers_range(text):
+    """Khoảng (tháng đầu, tháng cuối) mà 'nói về' trỏ tới; None nếu không có năm."""
+    t = text or ""
+    ym = re.search(r"\b(20\d{2})\b", t)
+    if not ym:
+        return None
+    y = int(ym.group(1))
+    has_quarter = bool(re.search(r"[Qq]uý", t) or re.search(r"\bQ[1-4]\b", t))
+    mm = re.search(r"[Tt]háng\s*(1[0-2]|[1-9])", t)
+    if not has_quarter and not mm:
+        mm = re.search(r"\b(1[0-2]|[1-9])/20\d{2}", t)
+    if mm and not has_quarter:
+        mo = int(mm.group(1))
+        return (month_index(y, mo), month_index(y, mo))
+    qm = re.search(r"[Qq]uý\s*([1-4])", t) or re.search(r"\bQ([1-4])\b", t)
+    if qm:
+        q = int(qm.group(1))
+        return (month_index(y, q * 3 - 2), month_index(y, q * 3))
+    return (month_index(y, 1), month_index(y, 12))   # chỉ có năm
+
+
+def impact_summary_html(items):
+    n = len(items)
+    if n == 0:
+        return "<div style='text-align:right;color:#bbb;font-size:12px;margin-top:8px'>—</div>"
+    pos = sum(1 for a in items if (a.get("impact") or "Trung lập") == "Tích cực")
+    neg = sum(1 for a in items if (a.get("impact") or "Trung lập") == "Tiêu cực")
+    pp = round(pos * 100 / n)
+    pn = round(neg * 100 / n)
+    pu = 100 - pp - pn
+    return (
+        "<div style='margin-top:6px'>"
+        "<div style='display:flex;height:8px;border-radius:4px;overflow:hidden;border:1px solid #eee'>"
+        f"<div style='width:{pp}%;background:#2f9e44'></div>"
+        f"<div style='width:{pu}%;background:#ced4da'></div>"
+        f"<div style='width:{pn}%;background:#e03131'></div></div>"
+        f"<div style='text-align:right;font-size:11px;color:#555;margin-top:2px'>"
+        f"🟢 {pp}% · ⚪ {pu}% · 🔴 {pn}%</div></div>")
+
+
 def insights_to_csv(insights):
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -391,20 +445,25 @@ if page == "📊 Nhận định":
                                use_container_width=True)
         if st.button("🔄 Tải lại", use_container_width=True):
             st.rerun()
+        st.divider()
+        edit_mode = False
+        if try_unlock("nd"):
+            edit_mode = st.toggle("✏️ Chế độ sửa")
 
     if not insights:
         st.info("Chưa có nhận định. Dùng trang **Nhập tay** hoặc chờ luồng tự động.")
     else:
-        all_tags = sorted({tag for a in insights for tag in parse_time_tags(a.get("refers_to", ""))},
-                          key=tag_sort_key)
-        c1, c2, c3 = st.columns([1.2, 1, 1])
-        time_filter = c1.selectbox("Lọc theo thời điểm nói tới", ["Tất cả"] + all_tags)
-        impact_filter = c2.selectbox("Lọc theo đánh giá", ["Tất cả"] + IMPACTS)
-        edit_mode = False
-        with c3:
-            st.write("")
-            if try_unlock("nd"):
-                edit_mode = st.toggle("✏️ Chế độ sửa")
+        now = datetime.now(VN_TZ)
+        cur_idx = month_index(now.year, now.month)
+        c1, c2, c3 = st.columns(3)
+        posted_choice = c1.selectbox("Ngày đăng bài",
+                                     ["3 tháng gần nhất", "6 tháng gần nhất", "Tất cả"])
+        refers_choice = c2.selectbox("Thời điểm nói tới",
+                                     ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
+        impact_filter = c3.selectbox("Đánh giá", ["Tất cả"] + IMPACTS)
+
+        post_start = {"3 tháng gần nhất": cur_idx - 3, "6 tháng gần nhất": cur_idx - 6}.get(posted_choice)
+        ref_end = {"3 tháng tiếp theo": cur_idx + 3, "6 tháng tiếp theo": cur_idx + 6}.get(refers_choice)
 
         # ----- CHẾ ĐỘ SỬA -----
         if edit_mode:
@@ -462,8 +521,16 @@ if page == "📊 Nhận định":
             def keep(a):
                 if impact_filter != "Tất cả" and (a.get("impact") or "Trung lập") != impact_filter:
                     return False
-                if time_filter != "Tất cả" and time_filter not in parse_time_tags(a.get("refers_to", "")):
-                    return False
+                if post_start is not None:
+                    pi = posted_index(a.get("posted_at", ""))
+                    if pi is not None and pi < post_start:
+                        return False
+                if ref_end is not None:
+                    rr = refers_range(a.get("refers_to", ""))
+                    if rr is not None:
+                        s, e = rr
+                        if not (e >= cur_idx and s <= ref_end):
+                            return False
                 return True
             shown = [a for a in insights if keep(a)]
             rows = {}
@@ -475,7 +542,9 @@ if page == "📊 Nhận định":
             def render_topic(name):
                 items = [a for a in shown if a.get("topic") == name]
                 with st.container(border=True, height=480):
-                    st.markdown(f"#### {name}")
+                    tcol, scol = st.columns([3, 2])
+                    tcol.markdown(f"#### {name}")
+                    scol.markdown(impact_summary_html(items), unsafe_allow_html=True)
                     st.caption(f"{len(items)} nhận định")
                     by_expert = {}
                     for a in items:
