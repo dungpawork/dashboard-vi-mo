@@ -1,4 +1,4 @@
-name: Cap nhat nhan dinh chuyen gia
+name: Goi y video moi
 
 on:
   schedule:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  cap-nhat:
+  goi-y:
     runs-on: ubuntu-latest
     steps:
       - name: Lay code
@@ -19,18 +19,18 @@ jobs:
         with:
           python-version: '3.12'
       - name: Cai thu vien
-        run: pip install feedparser google-genai youtube-transcript-api requests
-      - name: Chay robot lay tin
+        run: pip install feedparser google-genai requests
+      - name: Quet kenh va goi y video
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          FORCE_ALL: ${{ github.event_name == 'workflow_dispatch' }}
+          FORCE_ALL: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         run: python fetch.py
-      - name: Luu data.json vao kho
+      - name: Luu suggestions.json vao kho
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add data.json
-          git commit -m "Cap nhat nhan dinh tu dong" || echo "Khong co thay doi"
+          git add suggestions.json
+          git commit -m "Goi y video moi" || echo "Khong co thay doi"
           for i in 1 2 3 4 5; do
             git pull --rebase --autostash origin main && git push && exit 0
             echo "Push chua duoc, thu lai lan $i..."; sleep 5
