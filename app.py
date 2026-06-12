@@ -223,6 +223,14 @@ def impact_badge(v):
         v, ":gray[● Trung lập]")
 
 
+REGION_FLAG = {"Việt Nam": "🇻🇳", "Mỹ": "🇺🇸", "Châu Âu": "🇪🇺", "Trung Quốc": "🇨🇳", "Khác": "🌐"}
+
+
+def impact_dot_html(v):
+    color = {"Tích cực": "#2f9e44", "Tiêu cực": "#e03131"}.get(v, "#868e96")
+    return f"<span style='color:{color}'>● {v}</span>"
+
+
 def impact_summary_html(items):
     n = len(items)
     if n == 0:
@@ -413,6 +421,7 @@ EXPERTS_PROFILE = load_experts()
 TOPICS = topic_names(cfg)
 
 HAS_DIALOG = hasattr(st, "dialog")
+HAS_POPOVER = hasattr(st, "popover")
 if HAS_DIALOG:
     @st.dialog("Xem nhanh video")
     def _play_dialog(vid, sec, title):
@@ -427,21 +436,34 @@ if HAS_DIALOG:
 
 def render_insight(a, ctx=""):
     st.write(a.get("content", ""))
-    meta = [impact_badge(a.get("impact") or "Trung lập"), f"🌏 {a.get('region','')}"]
+    impact = a.get("impact") or "Trung lập"
+    region = a.get("region") or "Việt Nam"
+    parts = [impact_dot_html(impact), f"{REGION_FLAG.get(region, '🌐')} {region}"]
     if a.get("refers_to"):
-        meta.append(f"🗓️ {a['refers_to']}")
+        parts.append(f"🗓️ {a['refers_to']}")
     if a.get("posted_at"):
-        meta.append(f"📅 {a['posted_at'][:10]}")
-    meta.append("🤖" if a.get("source") == "tự động" else "✍️")
-    st.caption("  ·  ".join(meta))
+        parts.append(f"📅 {a['posted_at'][:10]}")
+    parts.append("🤖" if a.get("source") == "tự động" else "✍️")
+    meta = "<span style='font-size:13px;color:#666'>" + "  ·  ".join(parts) + "</span>"
+
     ts = a.get("video_timestamp")
+    vid, sec = a.get("video_id", ""), ts_to_seconds(ts)
+    iframe = (f'<iframe width="100%" height="200" src="https://www.youtube.com/embed/{vid}'
+              f'?start={sec}" frameborder="0" allow="encrypted-media; fullscreen" allowfullscreen></iframe>')
     if ts:
-        vid, sec = a.get("video_id", ""), ts_to_seconds(ts)
-        if HAS_DIALOG and vid:
-            if st.button(f"▶️ {ts}", key=f"pl_{ctx}_{a['id']}"):
-                _play_dialog(vid, sec, a.get("video_title", ""))
-        else:
-            st.markdown(f"[▶️ {ts}]({a.get('video_url_at','')})")
+        left, right = st.columns([5, 1.4])
+        left.markdown(meta, unsafe_allow_html=True)
+        with right:
+            if HAS_POPOVER and vid:
+                with st.popover(f"▶️ {ts}"):
+                    components.html(iframe, height=210)
+            elif HAS_DIALOG and vid:
+                if st.button(f"▶️ {ts}", key=f"pl_{ctx}_{a['id']}"):
+                    _play_dialog(vid, sec, a.get("video_title", ""))
+            else:
+                st.markdown(f"[▶️ {ts}]({a.get('video_url_at','')})")
+    else:
+        st.markdown(meta, unsafe_allow_html=True)
 
 
 # ==================== Điều hướng ====================
