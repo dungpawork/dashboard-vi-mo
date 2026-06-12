@@ -1,5 +1,5 @@
 {
-  "updated_at": "(vừa cập nhật tay)",
+  "updated_at": "(vừa sửa nguồn)",
   "videos": {
     "avbDkOzPB30": {
       "channel": "Tài chính & Kinh doanh",
@@ -24,12 +24,6 @@
       "title": "",
       "published": "2026-05-16",
       "url": "https://youtu.be/J54qTc-3yRQ"
-    },
-    "YvKWA7CTmMQ": {
-      "channel": "Tài chính & Kinh doanh",
-      "title": "",
-      "published": "2026-04-22",
-      "url": "https://youtu.be/YvKWA7CTmMQ"
     },
     "MlKa0-kS-Gs": {
       "channel": "Yêu Kinh Tế",
@@ -72,7 +66,8 @@
       "posted_at": "2026-04-09",
       "refers_to": "Quý 1/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "92336647f991fa3987929cfe0aa3b2ad",
@@ -89,7 +84,8 @@
       "posted_at": "2026-04-09",
       "refers_to": "Quý 1/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "0687259b44fe958f7f537296447feac8",
@@ -106,7 +102,8 @@
       "posted_at": "2026-04-09",
       "refers_to": "Tháng 3/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "c20e27a44a9808648022ea408aa41541",
@@ -123,7 +120,8 @@
       "posted_at": "2026-04-09",
       "refers_to": "Quý 1/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "7a416c899dfc6b83c4b4b79265323562",
@@ -140,7 +138,8 @@
       "posted_at": "2026-04-09",
       "refers_to": "Quý 2/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "ec9d77e293a82e6d6d8866149ed106b6",
@@ -157,7 +156,8 @@
       "posted_at": "2026-04-09",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "b62d72f21b28ee61f85367e06e7fd22c",
@@ -174,7 +174,8 @@
       "posted_at": "2026-04-09",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "46b4d7433f532440fe93b0d8e833b811",
@@ -191,7 +192,8 @@
       "posted_at": "2026-04-09",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "c4eaacb360c4447efeff60f7190f5c68",
@@ -208,7 +210,8 @@
       "posted_at": "2026-06-10",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "29ea4a4868181d7ede22d4c5fdc566f4",
@@ -225,7 +228,8 @@
       "posted_at": "2026-06-10",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "995cdfefda9ff661241b1358d37f0254",
@@ -242,7 +246,8 @@
       "posted_at": "2026-06-10",
       "refers_to": "Nửa cuối năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "07cef743c98b5a0df767b8cfa82c3c04",
@@ -259,7 +264,8 @@
       "posted_at": "2026-06-10",
       "refers_to": "Nửa cuối năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "b16272c2727664322817770dc18e99f8",
@@ -276,7 +282,8 @@
       "posted_at": "2026-06-10",
       "refers_to": "Nửa cuối năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "e9ecb2c1620d675f43cf661f79d6a2a8",
@@ -293,7 +300,8 @@
       "posted_at": "2026-06-10",
       "refers_to": "5 tháng đầu năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "b93ca097986d197fb0153de740c8f067",
@@ -310,7 +318,8 @@
       "posted_at": "2026-04-10",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "bf91f2df023151046597b3ab4c606c1f",
@@ -327,7 +336,8 @@
       "posted_at": "2026-04-10",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "6b9fe33f1bab43b04c02aaf0b7b3a6f2",
@@ -344,7 +354,8 @@
       "posted_at": "2026-04-10",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "e82d253185b9f63b1f05b19e3a0f5eb9",
@@ -361,7 +372,8 @@
       "posted_at": "2026-04-10",
       "refers_to": "Quý 2/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "0b0262baf81f9a7363896dbf541d14e6",
@@ -378,7 +390,8 @@
       "posted_at": "2026-04-10",
       "refers_to": "Quý 2/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "bf220fa8c40ae4d1a82de1ea245bd64a",
@@ -395,58 +408,8 @@
       "posted_at": "2026-04-10",
       "refers_to": "Quý 2/2026",
       "source": "thủ công",
-      "created_at": ""
-    },
-    {
-      "id": "146750c0f0922a3f9526adde735dabdc",
-      "video_id": "YvKWA7CTmMQ",
-      "channel": "Tài chính & Kinh doanh",
-      "expert": "Long Phan",
-      "topic": "Tỷ giá",
-      "content": "Cuộc chiến tranh giữa Mỹ và Iran bùng nổ dẫn tới nhu cầu thanh khoản đồng USD lớn trên toàn cầu. Một số ngân hàng trung ương đã phải chấm dứt chuỗi mua ròng kéo dài nhiều năm để chuyển sang bán vàng nhằm bổ sung thanh khoản ngoại tệ và bảo vệ dự trữ ngoại hối.",
-      "impact": "Tiêu cực",
-      "video_timestamp": "06:30",
-      "video_url_at": "https://youtu.be/YvKWA7CTmMQ?t=390",
-      "video_title": "",
-      "video_url": "https://youtu.be/YvKWA7CTmMQ",
-      "posted_at": "2026-04-22",
-      "refers_to": "Năm 2026",
-      "source": "thủ công",
-      "created_at": ""
-    },
-    {
-      "id": "20f7a9a8170c1a2948dfff597b79c339",
-      "video_id": "YvKWA7CTmMQ",
-      "channel": "Tài chính & Kinh doanh",
-      "expert": "Nguyễn Minh Tuấn",
-      "topic": "Lạm phát",
-      "content": "Xung đột địa chính trị tại khu vực Trung Đông đang gây ra nguy cơ đứt gãy chuỗi cung ứng hàng hải toàn cầu và làm gia tăng chi phí logistics. Điều này trực tiếp gây áp lực tăng lên chỉ số lạm phát lõi và CPI của nhiều quốc gia trong nửa cuối năm 2026.",
-      "impact": "Tiêu cực",
-      "video_timestamp": "15:45",
-      "video_url_at": "https://youtu.be/YvKWA7CTmMQ?t=945",
-      "video_title": "",
-      "video_url": "https://youtu.be/YvKWA7CTmMQ",
-      "posted_at": "2026-04-22",
-      "refers_to": "Năm 2026",
-      "source": "thủ công",
-      "created_at": ""
-    },
-    {
-      "id": "fa6f65e0123c4da497b61437ff3be2f2",
-      "video_id": "YvKWA7CTmMQ",
-      "channel": "Tài chính & Kinh doanh",
-      "expert": "Long Phan",
-      "topic": "GDP & Tăng trưởng",
-      "content": "Kinh tế thế giới dự báo duy trì tốc độ tăng trưởng thấp do các thách thức địa chính trị, trong khi Việt Nam đặt mục tiêu tăng trưởng GDP năm 2026 ở mức rất cao, gấp 3 đến 4 lần thế giới. Sự khác biệt này đòi hỏi Chính phủ và các doanh nghiệp trong nước phải gia tăng tính kiên cường trước các cú sốc bên ngoài.",
-      "impact": "Trung lập",
-      "video_timestamp": "28:10",
-      "video_url_at": "https://youtu.be/YvKWA7CTmMQ?t=1690",
-      "video_title": "",
-      "video_url": "https://youtu.be/YvKWA7CTmMQ",
-      "posted_at": "2026-04-22",
-      "refers_to": "Năm 2026",
-      "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "c96fcec46d717feba2e29e09efc2f36a",
@@ -463,7 +426,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "2d0c24fe5bae4d4a6261f52bf9f7298a",
@@ -480,7 +444,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "1f8a336e73a86d3cb20def643f19f239",
@@ -497,7 +462,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "4bc04ca3ef6aae49906a3a9c9adc0617",
@@ -514,7 +480,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "Quý 2/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "02ea4eecc2c57029f83c9be9ed9b3cb5",
@@ -531,7 +498,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "Tháng 5/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "7368dd68a1c62d6e4e0e18bfe9d94835",
@@ -548,7 +516,8 @@
       "posted_at": "2026-06-07",
       "refers_to": "Tháng 5/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "7a65c922a9a709578e2d90d52de2f033",
@@ -565,7 +534,8 @@
       "posted_at": "2026-06-07",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "cf90fecf1181ece335298e223d2b083b",
@@ -582,7 +552,8 @@
       "posted_at": "2026-06-07",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "c26e42dde7866047621e6e5fa8ab8b68",
@@ -599,7 +570,8 @@
       "posted_at": "2026-06-07",
       "refers_to": "Tháng 6/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "04d7d45132d5eb1a4237535524a6391a",
@@ -616,7 +588,8 @@
       "posted_at": "2026-06-07",
       "refers_to": "Tháng 5/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "f3c50c5fde3afc8054dc48d60a119913",
@@ -633,7 +606,8 @@
       "posted_at": "2026-06-07",
       "refers_to": "Tháng 5/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "ef65108a93b188396cf9fc2ae18b39c9",
@@ -650,7 +624,8 @@
       "posted_at": "2026-06-07",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "b4347c36f11860159af8af7d24f5aae6",
@@ -667,7 +642,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "Quý 1/2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "5a0c0a71d8168cf4f2d7c45c5cfdaabc",
@@ -684,7 +660,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "d5920861a058e0a9645814f18f1b236e",
@@ -701,7 +678,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "96a8ffb6ceef0500626d5e5b9ca402e6",
@@ -718,7 +696,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "Năm 2026",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     },
     {
       "id": "b9969678843b6538320a2a7c8ec57ec2",
@@ -735,7 +714,8 @@
       "posted_at": "2026-05-16",
       "refers_to": "",
       "source": "thủ công",
-      "created_at": ""
+      "created_at": "",
+      "region": "Việt Nam"
     }
   ]
 }
