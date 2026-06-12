@@ -32,13 +32,13 @@ REGIONS = ["Việt Nam", "Mỹ", "Châu Âu", "Trung Quốc", "Khác"]
 
 THEMES = {
     "light": {"bg": "#faf8f4", "card": "#ffffff", "border": "#ece6db", "text": "#2b2b2b",
-              "muted": "#9a9286", "heading": "#16243a", "hfont": "'Lora',serif",
+              "muted": "#9a9286", "heading": "#16243a", "hfont": "'Lora',Georgia,serif",
               "sidebar": "#f3efe8", "neu": "#cbd5e1", "pos": "#15803d", "neg": "#dc2626",
-              "shadow": "0 4px 14px rgba(40,30,10,.05)", "radius": "12px"},
+              "accent": "#16243a", "shadow": "0 4px 14px rgba(40,30,10,.05)", "radius": "12px"},
     "dark": {"bg": "#0e141b", "card": "#131b24", "border": "#202c3a", "text": "#cdd6e3",
              "muted": "#7d8aa0", "heading": "#ffffff", "hfont": "'Inter',sans-serif",
              "sidebar": "#0b1118", "neu": "#3a4759", "pos": "#34d399", "neg": "#f87171",
-             "shadow": "none", "radius": "10px"},
+             "accent": "#2b6cb0", "shadow": "none", "radius": "10px"},
 }
 
 
@@ -315,23 +315,23 @@ def render_topic_summary(shown):
         items = [a for a in shown if a.get("topic") == name]
         pp, _, pn = impact_counts(items)
         rows.append(
-            "<div style='display:grid;grid-template-columns:170px 34px 1fr 34px;gap:8px;"
-            "align-items:center;padding:6px 0'>"
-            f"<div style='font-size:13px;color:{t['text']}'>{name}</div>"
-            f"<div style='font-family:monospace;font-size:11px;color:{t['neg']};text-align:right'>{pn}%</div>"
-            "<div style='display:flex;align-items:center;height:14px;position:relative'>"
+            "<div style='display:grid;grid-template-columns:200px 44px 1fr 44px;gap:10px;"
+            "align-items:center;padding:8px 0'>"
+            f"<div style='font-size:15px;color:{t['text']}'>{name}</div>"
+            f"<div style='font-family:monospace;font-size:13px;font-weight:600;color:{t['neg']};text-align:right'>{pn}%</div>"
+            "<div style='display:flex;align-items:center;height:16px;position:relative'>"
             f"<div style='position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:{t['border']}'></div>"
-            f"<div style='flex:1;display:flex;justify-content:flex-end'><div style='height:10px;border-radius:2px;width:{pn}%;background:{t['neg']}'></div></div>"
-            f"<div style='flex:1'><div style='height:10px;border-radius:2px;width:{pp}%;background:{t['pos']}'></div></div>"
+            f"<div style='flex:1;display:flex;justify-content:flex-end'><div style='height:12px;border-radius:3px;width:{pn}%;background:{t['neg']}'></div></div>"
+            f"<div style='flex:1'><div style='height:12px;border-radius:3px;width:{pp}%;background:{t['pos']}'></div></div>"
             "</div>"
-            f"<div style='font-family:monospace;font-size:11px;color:{t['pos']}'>{pp}%</div>"
+            f"<div style='font-family:monospace;font-size:13px;font-weight:600;color:{t['pos']}'>{pp}%</div>"
             "</div>")
     return (
         f"<div style='background:{t['card']};border:1px solid {t['border']};border-radius:{t['radius']};"
-        f"padding:14px 18px;box-shadow:{t['shadow']};margin-bottom:18px'>"
-        f"<div style='font-family:{t['hfont']};font-size:18px;font-weight:600;color:{t['heading']};"
-        "margin-bottom:6px'>Tổng hợp Nhận định Chuyên gia</div>"
-        f"<div style='font-size:11px;color:{t['muted']};margin-bottom:8px'>"
+        f"padding:18px 22px;box-shadow:{t['shadow']};margin-bottom:20px'>"
+        f"<div style='font-family:{t['hfont']};font-size:21px;font-weight:600;color:{t['heading']};"
+        "margin-bottom:8px'>Tổng hợp Nhận định Chuyên gia</div>"
+        f"<div style='font-size:13px;color:{t['muted']};margin-bottom:10px'>"
         f"<span style='color:{t['neg']}'>◀ tiêu cực&nbsp;%</span> &nbsp;·&nbsp; "
         f"<span style='color:{t['pos']}'>tích cực&nbsp;% ▶</span></div>"
         + "".join(rows) + "</div>")
@@ -529,12 +529,12 @@ def render_insight(a, ctx="", show_byline=True):
         expert = a.get("expert", "(không rõ)")
         ttl = expert_title(expert)
         st.markdown(
-            f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>"
-            f"{avatar_img(expert, 30)}"
-            f"<span><span style='font-weight:600;color:{t['heading']}'>{expert}</span>"
-            + (f" <span style='color:{t['muted']};font-size:12px'>· {ttl}</span>" if ttl else "")
+            f"<div style='display:flex;align-items:center;gap:9px;margin-bottom:5px'>"
+            f"{avatar_img(expert, 34)}"
+            f"<span><span style='font-weight:600;font-size:15.5px;color:{t['heading']}'>{expert}</span>"
+            + (f" <span style='color:{t['muted']};font-size:13px'>· {ttl}</span>" if ttl else "")
             + "</span></div>", unsafe_allow_html=True)
-    st.markdown(f"<div style='color:{t['text']};font-size:14px;line-height:1.6'>{a.get('content','')}</div>",
+    st.markdown(f"<div style='color:{t['text']};font-size:15.5px;line-height:1.65'>{a.get('content','')}</div>",
                 unsafe_allow_html=True)
     impact = a.get("impact") or "Trung lập"
     region = a.get("region") or "Việt Nam"
@@ -544,7 +544,7 @@ def render_insight(a, ctx="", show_byline=True):
     if a.get("posted_at"):
         parts.append(f"📅 {a['posted_at'][:10]}")
     parts.append("🤖" if a.get("source") == "tự động" else "✍️")
-    meta = f"<span style='font-size:13px;color:{t['muted']}'>" + "  ·  ".join(parts) + "</span>"
+    meta = f"<span style='font-size:14px;color:{t['muted']}'>" + "  ·  ".join(parts) + "</span>"
 
     ts = a.get("video_timestamp")
     vid, sec = a.get("video_id", ""), ts_to_seconds(ts)
@@ -566,15 +566,41 @@ def render_insight(a, ctx="", show_byline=True):
 
 def inject_theme_css():
     t = TH()
+    accent = t["heading"] if st.session_state.get("ui_theme", "light") != "dark" else "#34d399"
     st.markdown(f"""<style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+    html, body, .stApp {{ font-size: 17px; }}
     .stApp {{ background:{t['bg']}; color:{t['text']}; font-family:'Inter',system-ui,sans-serif; }}
+    h1 {{ font-size: 2rem !important; }}
     h1,h2,h3,h4 {{ color:{t['heading']} !important; font-family:{t['hfont']}; }}
-    section[data-testid="stSidebar"] {{ background:{t['sidebar']}; }}
+    p, li, .stMarkdown {{ font-size: 1rem; }}
+    section[data-testid="stSidebar"] {{ background:{t['sidebar']}; border-right:1px solid {t['border']}; }}
     [data-testid="stVerticalBlockBorderWrapper"] {{
         background:{t['card']}; border:1px solid {t['border']} !important;
         border-radius:{t['radius']}; box-shadow:{t['shadow']}; }}
-    [data-testid="stExpander"] {{ border-color:{t['border']} !important; }}
+    [data-testid="stExpander"] {{ background:{t['card']}; border:1px solid {t['border']} !important;
+        border-radius:{t['radius']}; }}
+    /* Nút */
+    .stButton > button, .stDownloadButton > button, [data-testid="stPopoverButton"] {{
+        border-radius: 12px !important; border:1px solid {t['border']} !important;
+        background:{t['card']} !important; color:{t['text']} !important;
+        font-weight:600 !important; font-size:0.95rem !important;
+        padding:0.5rem 1rem !important; transition: all .15s ease;
+        box-shadow:{t['shadow']}; }}
+    .stButton > button:hover, .stDownloadButton > button:hover, [data-testid="stPopoverButton"]:hover {{
+        border-color:{accent} !important; color:{accent} !important;
+        transform: translateY(-1px); }}
+    .stButton > button[kind="primary"] {{
+        background:{accent} !important; color:{('#0e141b' if st.session_state.get('ui_theme')== 'dark' else '#ffffff')} !important;
+        border-color:{accent} !important; }}
+    /* Ô nhập, ô chọn */
+    [data-baseweb="select"] > div, .stTextInput input, .stTextArea textarea {{
+        background:{t['card']} !important; color:{t['text']} !important;
+        border-radius: 10px !important; border-color:{t['border']} !important;
+        font-size:0.95rem !important; }}
+    label, .stSelectbox label, .stTextInput label {{ color:{t['muted']} !important; font-size:0.9rem !important; }}
+    [data-testid="stCaptionContainer"], .stCaption {{ color:{t['muted']} !important; font-size:0.88rem !important; }}
+    hr {{ border-color:{t['border']}; }}
     #MainMenu, footer {{ visibility:hidden; }}
     </style>""", unsafe_allow_html=True)
 
