@@ -46,8 +46,14 @@ def load_config():
     for t in cfg.get("topics", []):
         if isinstance(t, dict):
             kw[t["name"]] = t.get("keywords", [])
-    return (cfg.get("channels", []), topics, kw,
+    return (cfg.get("channels", []), cfg.get("substacks", []), topics, kw,
             cfg.get("model", "gemini-2.5-flash-lite"), cfg.get("update_hours", []))
+
+
+def post_id(url):
+    import hashlib
+    u = (url or "").split("?")[0].rstrip("/")
+    return "p" + hashlib.md5(u.encode("utf-8")).hexdigest()[:15]
 
 
 HEADERS = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -83,6 +89,57 @@ def resolve_channel_id(url):
     except Exception as e:
         print(f"    Lỗi tải trang kênh: {e}")
     return None
+
+
+def substack_feed_url(url):
+    """Tìm địa chỉ RSS của bản tin Substack từ link cấu hình."""
+    u = (url or "").split("?")[0].rstrip("/")
+    if u.endswith("/feed"):
+        return u
+    # Link hồ sơ tác giả (substack.com/@ten) -> dò bản tin trong trang
+    if "substack.com/@" in u:
+        try:
+            r = requests.get(u, timeout=20, headers=HEADERS)
+            print(f"    Tải trang hồ sơ: HTTP {r.status_code}, {len(r.text)} ký tự")
+            doms = re.findall(r'https?://([a-zA-Z0-9-]+)\.substack\.com', r.text)
+            doms = [d for d in doms if d not in ("www", "substack", "open", "api", "cdn", "support")]
+            if doms:
+                best = max(set(doms), key=doms.count)
+                print(f"    Dò được bản tin: {best}.substack.com")
+                return f"https://{best}.substack.com/feed"
+            print("    KHÔNG dò được bản tin từ trang hồ sơ — hãy dùng link dạng ten.substack.com")
+        except Exception as e:
+            print(f"    Lỗi tải trang hồ sơ: {e}")
+        return None
+    return u + "/feed"
+
+
+def list_substack_posts(url, limit=MAX_PER_CHANNEL):
+    feed_url = substack_feed_url(url)
+    if not feed_url:
+        return []
+    try:
+        r = requests.get(feed_url, timeout=20, headers=HEADERS)
+        print(f"    Tải RSS: HTTP {r.status_code}, {len(r.text)} ký tự")
+        if r.status_code != 200:
+            print("    => RSS bị từ chối.")
+            return []
+        feed = feedparser.parse(r.text)
+    except Exception as e:
+        print(f"    Lỗi tải RSS: {e}")
+        return []
+    out = []
+    for e in feed.entries[:limit]:
+        link = (e.get("link", "") or "").split("?")[0]
+        if not link:
+            continue
+        pub = ""
+        if e.get("published_parsed"):
+            p = e["published_parsed"]
+            pub = f"{p.tm_year:04d}-{p.tm_mon:02d}-{p.tm_mday:02d}"
+        out.append({"id": post_id(link), "title": e.get("title", ""),
+                    "published": pub, "url": link})
+    return out
 
 
 def list_channel_videos(url, limit=MAX_PER_CHANNEL):
@@ -154,9 +211,9 @@ def classify(items, topics, kw, model):
 
 
 def main():
-    channels, topics, kw, model, update_hours = load_config()
-    if not channels or not topics:
-        print("Thiếu kênh hoặc chủ đề trong config.json — dừng.")
+    channels, substacks, topics, kw, model, update_hours = load_config()
+    if (not channels and not substacks) or not topics:
+        print("Thiếu nguồn hoặc chủ đề trong config.json — dừng.")
         return
 
     force = os.environ.get("FORCE_ALL", "") == "1"
@@ -170,19 +227,31 @@ def main():
     sugg = load_json(SUGGEST_FILE, {})
     items = sugg.get("items", {})
 
-    # Thu thập video mới từ các kênh
+    # Thu thập nội dung mới từ các nguồn
     fresh = []
     for ch in channels:
         name, url = ch.get("name", ""), ch.get("url", "")
-        print(f"Kênh: {name}")
+        print(f"Kênh YouTube: {name}")
         vids = list_channel_videos(url)
         print(f"  RSS trả về {len(vids)} video")
         for v in vids:
             if v["id"] in known_videos or v["id"] in items:
                 continue
             v["channel"] = name
+            v["type"] = "video"
             fresh.append(v)
-    print(f"Tổng video mới cần phân loại: {len(fresh)}")
+    for sb in substacks:
+        name, url = sb.get("name", ""), sb.get("url", "")
+        print(f"Substack: {name}")
+        posts = list_substack_posts(url)
+        print(f"  RSS trả về {len(posts)} bài")
+        for p in posts:
+            if p["id"] in known_videos or p["id"] in items:
+                continue
+            p["channel"] = name
+            p["type"] = "post"
+            fresh.append(p)
+    print(f"Tổng nội dung mới cần phân loại: {len(fresh)}")
 
     if fresh:
         labels = classify(fresh, topics, kw, model)
@@ -192,6 +261,7 @@ def main():
                 topic = NOT_SUITABLE
             items[v["id"]] = {"title": v["title"], "channel": v["channel"],
                               "published": v["published"], "url": v["url"],
+                              "type": v.get("type", "video"),
                               "topic": topic, "status": "gợi ý"}
             print(f"  + [{topic}] {v['title'][:60]}")
 
