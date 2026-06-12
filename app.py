@@ -81,6 +81,7 @@ def load_config():
     return {
         "model": cfg.get("model", DEFAULT_MODEL),
         "channels": cfg.get("channels", []),
+        "substacks": cfg.get("substacks", []),
         "topics": cfg.get("topics", []),
         "update_hours": cfg.get("update_hours", []),
         "prompt_instructions": cfg.get("prompt_instructions", DEFAULT_AUTO_PROMPT),
