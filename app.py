@@ -1,65 +1,81 @@
 # -*- coding: utf-8 -*-
 """
-DASHBOARD TIN TỨC KINH TẾ — nhiều block + trang Cấu hình (admin)
-----------------------------------------------------------------
-- Trang Tin tức: hiển thị từng block theo lưới, mỗi block là một chủ đề.
-- Trang Cấu hình (mật khẩu): thêm/bớt block; mỗi block chỉnh tên, từ khóa,
-  nguồn RSS, prompt, giờ cập nhật. Lưu sẽ ghi config.json lên GitHub.
+DASHBOARD NHẬN ĐỊNH CHUYÊN GIA (YouTube) — 3 trang:
+  📊 Tin tức   : block theo chủ đề, gom theo chuyên gia, tải CSV
+  ✍️ Nhập tay  : lấy video mới -> copy prompt+link cho Gemini -> dán kết quả -> lưu
+  ⚙️ Cấu hình  : kênh YouTube, 7 chủ đề, model, prompt (có mật khẩu)
 
-Secrets cần cho phần Cấu hình:
-  ADMIN_PASSWORD, GH_TOKEN, GH_REPO  (vd "tendangnhap/dashboard-kinh-te")
+Secrets cần: ADMIN_PASSWORD, GH_TOKEN, GH_REPO
+Thư viện: streamlit, requests, feedparser
 """
 
 import os
+import re
+import io
+import csv
 import json
 import base64
-import uuid
+import hashlib
 
 import requests
+import feedparser
 import streamlit as st
 
 CONFIG_FILE = "config.json"
 DATA_FILE = "data.json"
-IMPACTS = ["Tích cực", "Tiêu cực", "Trung lập"]
-DEFAULT_PROMPT = ("Bạn là chuyên gia phân tích tin kinh tế. Hãy tóm tắt CỐT LÕI của bài "
-                  "trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, tập trung nêu rõ các con số, "
-                  "số liệu cụ thể nếu bài có.")
+DEFAULT_MODEL = "gemini-2.5-flash-lite"
 GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.5-flash",
                  "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
-DEFAULT_MODEL = GEMINI_MODELS[0]
-COLS_PER_ROW = 2
+DEFAULT_AUTO_PROMPT = ("Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) "
+                       "của video và rút ra các NHẬN ĐỊNH kinh tế quan trọng, tóm tắt "
+                       "mỗi nhận định 2-4 câu, nêu rõ số liệu nếu có.")
+DEFAULT_MANUAL_TEMPLATE = (
+    "Bạn là trợ lý phân tích kinh tế. Với MỖI link video dưới đây, hãy xem video và rút "
+    "ra các nhận định kinh tế quan trọng.\n\nPhân loại mỗi nhận định vào ĐÚNG MỘT chủ đề: "
+    "{topics}\n\nVới mỗi nhận định: expert (tên chuyên gia, không rõ thì ghi tên kênh), "
+    "topic (trong danh sách trên), content (2-4 câu, nêu số liệu), timestamp (mm:ss), "
+    "refers_to (thời điểm nhận định nói tới, vd \"Tháng 6/2026\", không rõ để \"\").\n\n"
+    "CHỈ trả về JSON: [{\"video\":\"<link>\",\"insights\":[{\"expert\":\"...\",\"topic\":"
+    "\"...\",\"content\":\"...\",\"timestamp\":\"mm:ss\",\"refers_to\":\"...\"}]}]\n\n"
+    "Danh sách video:\n{links}")
 
 
-# ---------------- Đọc dữ liệu & cấu hình ----------------
+# ==================== Đọc cấu hình & dữ liệu (file cục bộ) ====================
+
+def load_config():
+    cfg = {}
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception:
+            pass
+    return {
+        "model": cfg.get("model", DEFAULT_MODEL),
+        "channels": cfg.get("channels", []),
+        "topics": cfg.get("topics", []),
+        "update_hours": cfg.get("update_hours", []),
+        "prompt_instructions": cfg.get("prompt_instructions", DEFAULT_AUTO_PROMPT),
+        "manual_prompt_template": cfg.get("manual_prompt_template", DEFAULT_MANUAL_TEMPLATE),
+    }
+
 
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 d = json.load(f)
-            return d.get("blocks", {}), d.get("updated_at", "")
-        except Exception:
-            return {}, ""
-    return {}, ""
-
-
-def load_blocks():
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                c = json.load(f)
-            blocks = st.session_state.get("live_blocks", c.get("blocks", []))
-            prompt = st.session_state.get("live_prompt", c.get("prompt_instructions", DEFAULT_PROMPT))
-            model = st.session_state.get("live_model", c.get("model") or DEFAULT_MODEL)
-            resummarize = st.session_state.get("live_resummarize", bool(c.get("resummarize", True)))
-            return blocks, prompt, model, resummarize
+            return d.get("videos", {}), d.get("insights", []), d.get("updated_at", "")
         except Exception:
             pass
-    return (st.session_state.get("live_blocks", []),
-            st.session_state.get("live_prompt", DEFAULT_PROMPT),
-            st.session_state.get("live_model", DEFAULT_MODEL),
-            st.session_state.get("live_resummarize", True))
+    return {}, [], ""
 
+
+def topic_names(cfg):
+    return [t["name"] if isinstance(t, dict) else t for t in cfg["topics"]]
+
+
+# ==================== GitHub ====================
 
 def get_secret(name):
     try:
@@ -68,114 +84,296 @@ def get_secret(name):
         return ""
 
 
-def github_save(blocks, prompt, model, resummarize):
+def _gh_headers():
+    return {"Authorization": f"Bearer {get_secret('GH_TOKEN')}",
+            "Accept": "application/vnd.github+json"}
+
+
+def github_get_json(path):
+    """Trả về (dict_hoặc_None, sha_hoặc_None)."""
+    repo = get_secret("GH_REPO")
+    api = f"https://api.github.com/repos/{repo}/contents/{path}"
+    try:
+        r = requests.get(api, headers=_gh_headers(), timeout=20)
+        if r.status_code == 200:
+            j = r.json()
+            content = base64.b64decode(j["content"]).decode("utf-8")
+            return json.loads(content), j.get("sha")
+    except Exception:
+        pass
+    return None, None
+
+
+def github_put_json(path, data, message):
     token, repo = get_secret("GH_TOKEN"), get_secret("GH_REPO")
     if not token or not repo:
         return False, "Chưa khai báo GH_TOKEN / GH_REPO trong Secrets."
-    api = f"https://api.github.com/repos/{repo}/contents/{CONFIG_FILE}"
-    headers = {"Authorization": f"Bearer {token}",
-               "Accept": "application/vnd.github+json"}
-    content_str = json.dumps({"model": model, "resummarize": bool(resummarize),
-                              "prompt_instructions": prompt, "blocks": blocks},
-                             ensure_ascii=False, indent=2)
-    sha = None
+    api = f"https://api.github.com/repos/{repo}/contents/{path}"
+    content_str = json.dumps(data, ensure_ascii=False, indent=2)
+    for _ in range(2):
+        sha = None
+        try:
+            r = requests.get(api, headers=_gh_headers(), timeout=20)
+            if r.status_code == 200:
+                sha = r.json().get("sha")
+        except Exception as e:
+            return False, f"Không kết nối GitHub: {e}"
+        body = {"message": message,
+                "content": base64.b64encode(content_str.encode("utf-8")).decode("ascii")}
+        if sha:
+            body["sha"] = sha
+        try:
+            r2 = requests.put(api, headers=_gh_headers(), json=body, timeout=20)
+        except Exception as e:
+            return False, f"Không gửi được lên GitHub: {e}"
+        if r2.status_code in (200, 201):
+            return True, "Đã lưu lên GitHub."
+        if r2.status_code == 409:
+            continue   # sha cũ, thử lại
+        return False, f"GitHub lỗi {r2.status_code}: {r2.text[:150]}"
+    return False, "Xung đột khi lưu, thử lại sau ít phút."
+
+
+# ==================== Tiện ích YouTube / nhận định ====================
+
+def extract_video_id(link):
+    m = re.search(r"(?:v=|youtu\.be/|/shorts/|/embed/)([0-9A-Za-z_-]{11})", link or "")
+    return m.group(1) if m else None
+
+
+def ts_to_seconds(ts):
+    parts = str(ts).split(":")
     try:
-        r = requests.get(api, headers=headers, timeout=20)
-        if r.status_code == 200:
-            sha = r.json().get("sha")
-    except Exception as e:
-        return False, f"Không kết nối được GitHub: {e}"
-    body = {"message": "Cap nhat cau hinh block",
-            "content": base64.b64encode(content_str.encode("utf-8")).decode("ascii")}
-    if sha:
-        body["sha"] = sha
+        parts = [int(p) for p in parts]
+    except ValueError:
+        return 0
+    if len(parts) == 3:
+        return parts[0] * 3600 + parts[1] * 60 + parts[2]
+    if len(parts) == 2:
+        return parts[0] * 60 + parts[1]
+    return parts[0] if parts else 0
+
+
+def resolve_channel_id(url):
+    m = re.search(r"/channel/(UC[0-9A-Za-z_-]{22})", url or "")
+    if m:
+        return m.group(1)
     try:
-        r2 = requests.put(api, headers=headers, json=body, timeout=20)
-    except Exception as e:
-        return False, f"Không gửi được lên GitHub: {e}"
-    if r2.status_code in (200, 201):
-        return True, "Đã lưu cấu hình lên GitHub."
-    return False, f"GitHub trả lỗi {r2.status_code}: {r2.text[:200]}"
+        r = requests.get((url or "").split("?")[0], timeout=20,
+                         headers={"User-Agent": "Mozilla/5.0"})
+        m = re.search(r'"channelId":"(UC[0-9A-Za-z_-]{22})"', r.text)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    return None
 
 
-def impact_label(impact):
-    if impact == "Tích cực":
-        return ":green[● Tích cực]"
-    if impact == "Tiêu cực":
-        return ":red[● Tiêu cực]"
-    return ":gray[● Trung lập]"
+def list_channel_videos(url, limit=5):
+    cid = resolve_channel_id(url)
+    if not cid:
+        return []
+    feed = feedparser.parse("https://www.youtube.com/feeds/videos.xml?channel_id=" + cid)
+    out = []
+    for e in feed.entries[:limit]:
+        vid = getattr(e, "yt_videoid", None) or e.get("id", "").split(":")[-1]
+        if vid:
+            out.append({"id": vid, "title": e.get("title", ""),
+                        "published": e.get("published", ""),
+                        "url": "https://youtu.be/" + vid})
+    return out
 
 
-# ---------------- Giao diện ----------------
+def insights_to_csv(insights):
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Chủ đề", "Chuyên gia", "Kênh", "Nội dung nhận định", "Mốc trong video",
+                "Link tới mốc", "Thời điểm post video", "Thời điểm nhận định nói tới",
+                "Nguồn", "Link video"])
+    for a in insights:
+        w.writerow([a.get("topic", ""), a.get("expert", ""), a.get("channel", ""),
+                    a.get("content", ""), a.get("video_timestamp", ""),
+                    a.get("video_url_at", ""), a.get("posted_at", ""),
+                    a.get("refers_to", ""), a.get("source", ""), a.get("video_url", "")])
+    return ("\ufeff" + buf.getvalue()).encode("utf-8")   # BOM để Excel đọc tiếng Việt
 
-st.set_page_config(page_title="Dashboard Kinh tế", page_icon="📊", layout="wide")
 
-blocks, global_prompt, global_model, global_resummarize = load_blocks()
-blocks_data, updated_at = load_data()
+# ==================== Giao diện ====================
 
-page = st.sidebar.radio("Trang", ["📊 Tin tức", "⚙️ Cấu hình"])
+st.set_page_config(page_title="Nhận định chuyên gia", page_icon="🎙️", layout="wide")
+cfg = load_config()
+videos, insights, updated_at = load_data()
+TOPICS = topic_names(cfg)
 
-# ============================ TRANG TIN TỨC ============================
+page = st.sidebar.radio("Trang", ["📊 Tin tức", "✍️ Nhập tay", "⚙️ Cấu hình"])
+
+# -------------------------------------------------- TRANG TIN TỨC
 if page == "📊 Tin tức":
-    st.title("📊 Dashboard tin tức kinh tế")
+    st.title("🎙️ Nhận định chuyên gia theo chủ đề")
     with st.sidebar:
         if updated_at:
-            st.caption(f"Cập nhật gần nhất: **{updated_at}** (giờ VN)")
+            st.caption(f"Cập nhật gần nhất: **{updated_at}**")
+        st.caption(f"Tổng **{len(insights)}** nhận định")
+        if insights:
+            st.download_button("⬇️ Tải CSV (mở bằng Excel)",
+                               data=insights_to_csv(insights),
+                               file_name="nhan_dinh.csv", mime="text/csv",
+                               use_container_width=True)
         if st.button("🔄 Tải lại trang", use_container_width=True):
             st.rerun()
 
-    if not blocks:
-        st.info("Chưa có block nào. Vào trang **Cấu hình** để tạo block.")
+    if not insights:
+        st.info("Chưa có nhận định nào. Dùng trang **Nhập tay** hoặc chờ luồng tự động.")
     else:
-        # Lọc nhanh theo tác động (áp dụng cho mọi block)
-        impact_filter = st.selectbox("Lọc theo tác động", ["Tất cả"] + IMPACTS)
-
-        # Nhóm block theo "hàng" đã cấu hình. Block chưa đặt hàng thì xếp xuống cuối.
+        # nhóm chủ đề theo hàng
         rows = {}
-        for order, block in enumerate(blocks):
-            r = block.get("row", 0) or (9999)   # chưa đặt -> dồn về nhóm cuối
-            rows.setdefault(r, []).append((order, block))
+        for order, t in enumerate(cfg["topics"]):
+            name = t["name"] if isinstance(t, dict) else t
+            r = (t.get("row", 1) if isinstance(t, dict) else 1) or 1
+            rows.setdefault(r, []).append((order, name))
 
-        def render_block(block):
-            bid = block.get("id")
-            bdata = blocks_data.get(bid, {})
-            arts = bdata.get("articles", [])
-            if impact_filter != "Tất cả":
-                arts = [a for a in arts
-                        if (a.get("impact") or "Trung lập") == impact_filter]
-            with st.container(border=True, height=460):
-                st.markdown(f"#### {block.get('name', bid)}")
-                upd = bdata.get("updated_at")
-                st.caption(f"{len(arts)} tin" + (f" · cập nhật {upd}" if upd else ""))
-                if not arts:
-                    st.caption("_Chưa có tin._")
-                for a in arts:
-                    st.markdown(f"**[{a.get('title','')}]({a.get('link','')})**")
-                    if a.get("ai", True):
-                        badge = impact_label(a.get('impact') or 'Trung lập')
-                    else:
-                        badge = ":orange[● Tin nhanh (chưa qua AI)]"
-                    st.markdown(f"{badge}  ·  📰 {a.get('source','')}")
-                    if a.get("summary"):
-                        st.caption(a["summary"])
+        def render_topic(name):
+            items = [a for a in insights if a.get("topic") == name]
+            with st.container(border=True, height=480):
+                st.markdown(f"#### {name}")
+                st.caption(f"{len(items)} nhận định")
+                # gom theo chuyên gia
+                by_expert = {}
+                for a in items:
+                    by_expert.setdefault(a.get("expert", "(không rõ)"), []).append(a)
+                if not items:
+                    st.caption("_Chưa có nhận định._")
+                for expert, arr in by_expert.items():
+                    st.markdown(f"**🧑‍💼 {expert}**")
+                    for a in arr:
+                        line = a.get("content", "")
+                        st.write(line)
+                        bits = []
+                        if a.get("refers_to"):
+                            bits.append(f"🗓️ nói về: {a['refers_to']}")
+                        if a.get("video_timestamp"):
+                            bits.append(f"[▶️ {a['video_timestamp']}]({a.get('video_url_at','')})")
+                        if a.get("posted_at"):
+                            bits.append(f"📅 đăng: {a['posted_at'][:10]}")
+                        tag = "🤖" if a.get("source") == "tự động" else "✍️"
+                        bits.append(tag)
+                        st.caption("  ·  ".join(bits))
                     st.divider()
 
         for r in sorted(rows.keys()):
-            row_items = [b for _, b in sorted(rows[r], key=lambda x: x[0])]
+            row_items = [n for _, n in sorted(rows[r], key=lambda x: x[0])]
             cols = st.columns(len(row_items))
-            for col, block in zip(cols, row_items):
+            for col, name in zip(cols, row_items):
                 with col:
-                    render_block(block)
+                    render_topic(name)
 
-# ============================ TRANG CẤU HÌNH ============================
+# -------------------------------------------------- TRANG NHẬP TAY
+elif page == "✍️ Nhập tay":
+    st.title("✍️ Nhập nhận định thủ công")
+    st.caption("Quy trình: ① Lấy video mới → ② Copy prompt+link → ③ Dán vào Gemini → "
+               "④ Dán kết quả vào đây và Lưu.")
+
+    # ① Lấy video mới
+    st.subheader("① Lấy video mới từ các kênh")
+    if st.button("🔍 Quét video mới"):
+        found = []
+        with st.spinner("Đang quét các kênh..."):
+            for ch in cfg["channels"]:
+                for v in list_channel_videos(ch.get("url", ""), 5):
+                    if v["id"] not in videos:
+                        v["channel"] = ch.get("name", "")
+                        found.append(v)
+        st.session_state["found_videos"] = found
+    found = st.session_state.get("found_videos", [])
+    if found:
+        st.write(f"Tìm thấy **{len(found)}** video mới chưa xử lý:")
+        for v in found:
+            st.write(f"- [{v['title'][:70]}]({v['url']}) — {v.get('channel','')}")
+    st.caption("Nếu nút quét không ra video (do YouTube chặn máy chủ), dán link thủ công bên dưới:")
+    manual_links = st.text_area("Dán thêm link video (mỗi dòng một link)", height=80)
+
+    # ② Tạo khối prompt + link để copy
+    st.subheader("② Copy khối này dán vào Gemini")
+    links = [v["url"] for v in found]
+    links += [l.strip() for l in manual_links.splitlines() if l.strip()]
+    links = list(dict.fromkeys(links))   # bỏ trùng
+    if links:
+        block = (cfg["manual_prompt_template"]
+                 .replace("{topics}", ", ".join(TOPICS))
+                 .replace("{links}", "\n".join(links)))
+        st.code(block, language="text")
+    else:
+        st.info("Chưa có link. Bấm Quét video mới hoặc dán link ở trên.")
+
+    # ③ + ④ Dán kết quả Gemini và lưu
+    st.subheader("③ Dán kết quả JSON từ Gemini vào đây")
+    pasted = st.text_area("Kết quả từ Gemini", height=220,
+                          placeholder='[{"video":"...","insights":[...]}]')
+    if st.button("💾 Lưu nhận định", type="primary"):
+        try:
+            s = pasted[pasted.index("["): pasted.rindex("]") + 1]
+            parsed = json.loads(s)
+        except Exception:
+            st.error("Không đọc được JSON. Hãy chắc bạn dán đúng phần Gemini trả về.")
+            parsed = None
+        if parsed is not None:
+            vmeta = {v["id"]: v for v in found}
+            new_videos, new_insights, skipped = {}, [], 0
+            for item in parsed:
+                vid = extract_video_id(item.get("video", ""))
+                if not vid:
+                    skipped += 1
+                    continue
+                meta = vmeta.get(vid, {"title": "", "published": "",
+                                       "url": f"https://youtu.be/{vid}", "channel": "(thủ công)"})
+                new_videos[vid] = {"channel": meta.get("channel", "(thủ công)"),
+                                   "title": meta.get("title", ""),
+                                   "published": meta.get("published", ""),
+                                   "url": meta.get("url", f"https://youtu.be/{vid}")}
+                for ins in item.get("insights", []):
+                    if not ins.get("content"):
+                        continue
+                    topic = ins.get("topic", "")
+                    if topic not in TOPICS:
+                        topic = TOPICS[-1] if TOPICS else "Khác"
+                    ts = ins.get("timestamp", "")
+                    url_at = meta["url"] + (f"?t={ts_to_seconds(ts)}" if ts else "")
+                    raw = vid + topic + ins.get("content", "")[:30]
+                    new_insights.append({
+                        "id": hashlib.md5(raw.encode("utf-8")).hexdigest(),
+                        "video_id": vid, "channel": meta.get("channel", "(thủ công)"),
+                        "expert": (ins.get("expert", "") or meta.get("channel", "")).strip(),
+                        "topic": topic, "content": ins.get("content", "").strip(),
+                        "video_timestamp": ts, "video_url_at": url_at,
+                        "video_title": meta.get("title", ""), "video_url": meta["url"],
+                        "posted_at": meta.get("published", ""),
+                        "refers_to": ins.get("refers_to", "").strip(),
+                        "source": "thủ công", "created_at": ""})
+            if not new_insights:
+                st.warning("Không tách được nhận định nào từ nội dung đã dán.")
+            else:
+                remote, _ = github_get_json(DATA_FILE)
+                remote = remote or {"videos": {}, "insights": []}
+                rv = remote.get("videos", {}); rv.update(new_videos)
+                existing_ids = {i["id"] for i in remote.get("insights", [])}
+                merged = [i for i in new_insights if i["id"] not in existing_ids] \
+                    + remote.get("insights", [])
+                payload = {"updated_at": "(vừa cập nhật tay)", "videos": rv, "insights": merged}
+                ok, msg = github_put_json(DATA_FILE, payload, "Them nhan dinh thu cong")
+                if ok:
+                    st.success(f"Đã lưu {len(new_insights)} nhận định"
+                               + (f" ({skipped} video bỏ qua do thiếu link)" if skipped else "")
+                               + ". Mở trang Tin tức và Tải lại sau ~1 phút.")
+                else:
+                    st.error(msg)
+
+# -------------------------------------------------- TRANG CẤU HÌNH
 else:
-    st.title("⚙️ Cấu hình các block")
-
+    st.title("⚙️ Cấu hình")
     admin_pw = get_secret("ADMIN_PASSWORD")
     if not admin_pw:
         st.warning("Chưa đặt ADMIN_PASSWORD trong Secrets nên trang này đang khóa.")
         st.stop()
-
     if not st.session_state.get("is_admin"):
         pw = st.text_input("Mật khẩu quản trị", type="password")
         if st.button("Mở khóa"):
@@ -186,119 +384,68 @@ else:
                 st.error("Sai mật khẩu.")
         st.stop()
 
-    # Nạp bản nháp các block vào session (chỉ lần đầu)
-    if "draft" not in st.session_state:
-        st.session_state["draft"] = [dict(b) for b in blocks]
+    st.success("Đã mở khóa. Chỉnh xong bấm **Lưu tất cả** ở cuối.")
 
-    st.success("Đã mở khóa. Chỉnh xong nhớ bấm **Lưu tất cả** ở cuối trang.")
-
-    # Khởi tạo giá trị ban đầu (chỉ lần đầu) để widget không bị xung đột value/state
+    # Model + lịch
     if "model_select" not in st.session_state:
-        st.session_state["model_select"] = global_model if global_model in GEMINI_MODELS else DEFAULT_MODEL
-    if "global_prompt" not in st.session_state:
-        st.session_state["global_prompt"] = global_prompt
+        st.session_state["model_select"] = cfg["model"] if cfg["model"] in GEMINI_MODELS else DEFAULT_MODEL
+    st.subheader("Model AI (cho luồng tự động)")
+    st.selectbox("Model", GEMINI_MODELS, key="model_select")
+    st.subheader("Giờ chạy luồng tự động (giờ VN)")
+    hours = st.multiselect("Giờ", list(range(24)), default=cfg["update_hours"],
+                           format_func=lambda h: f"{h}h", key="hours_select")
 
-    st.subheader("Model AI")
-    st.selectbox("Chọn model", GEMINI_MODELS, key="model_select",
-                 help="Nếu model báo hết lượt, chọn model khác ở đây rồi Lưu — "
-                      "không cần sửa fetch.py.")
-    st.toggle("Tự tóm tắt lại 'tin nhanh' bằng AI khi có quota trở lại",
-              value=global_resummarize, key="resummarize_toggle",
-              help="Khi bật: những tin trước đó chỉ lấy sapo (do hết lượt) sẽ được "
-                   "robot tóm tắt lại đầy đủ ở các lần chạy sau, nếu còn lượt AI.")
+    # Kênh YouTube
+    st.subheader("Kênh YouTube (nguồn chuyên gia)")
+    st.caption("Thêm/bớt kênh. Mỗi kênh gồm tên hiển thị và link kênh (dạng youtube.com/@...).")
+    ch_rows = [{"Tên kênh": c.get("name", ""), "Link kênh": c.get("url", "")}
+               for c in cfg["channels"]] or [{"Tên kênh": "", "Link kênh": ""}]
+    ch_edit = st.data_editor(ch_rows, num_rows="dynamic", use_container_width=True,
+                             key="ch_editor",
+                             column_config={"Tên kênh": st.column_config.TextColumn(width="medium"),
+                                            "Link kênh": st.column_config.TextColumn(width="large")})
 
-    st.subheader("Prompt chung cho AI")
-    st.caption("Dùng chung cho mọi block (vì mỗi bài chỉ gọi AI một lần). Hệ thống tự "
-               "thêm yêu cầu chọn block và đánh giá tác động, bạn chỉ cần mô tả cách tóm tắt.")
-    if st.button("↩️ Khôi phục prompt mặc định"):
-        st.session_state["global_prompt"] = DEFAULT_PROMPT
-        st.rerun()
-    st.text_area("Prompt", key="global_prompt", height=140)
-    st.markdown("---")
-    st.subheader("Các block")
+    # Chủ đề
+    st.subheader("Chủ đề (mỗi chủ đề là một block)")
+    st.caption("Cột Hàng quyết định bố cục (các chủ đề cùng số hàng nằm cạnh nhau).")
+    tp_rows = [{"Tên chủ đề": (t["name"] if isinstance(t, dict) else t),
+                "Hàng": (t.get("row", 1) if isinstance(t, dict) else 1)} for t in cfg["topics"]] \
+        or [{"Tên chủ đề": "", "Hàng": 1}]
+    tp_edit = st.data_editor(tp_rows, num_rows="dynamic", use_container_width=True,
+                             key="tp_editor",
+                             column_config={"Tên chủ đề": st.column_config.TextColumn(width="large"),
+                                            "Hàng": st.column_config.NumberColumn(min_value=1, max_value=20, step=1)})
 
-    if st.button("➕ Thêm block mới"):
-        st.session_state["draft"].append({
-            "id": "blk_" + uuid.uuid4().hex[:6],
-            "name": "Block mới", "topics": [],
-            "rss_feeds": {"VnExpress - Kinh doanh": "https://vnexpress.net/rss/kinh-doanh.rss"},
-            "update_hours": [7], "row": 1,
-        })
-        st.rerun()
-
-    rss_edits = {}   # id -> dữ liệu bảng RSS đã sửa
-    for blk in st.session_state["draft"]:
-        bid = blk["id"]
-        title = st.session_state.get(f"name_{bid}", blk.get("name", "(block)"))
-        with st.expander(f"📦 {title}", expanded=False):
-            st.text_input("Tên block", value=blk.get("name", ""), key=f"name_{bid}")
-
-            st.text_area("Từ khóa của block (mỗi dòng một từ)",
-                         value="\n".join(blk.get("topics", [])),
-                         key=f"topics_{bid}", height=120,
-                         help="Chỉ bài có chứa một trong các từ khóa này mới được xét vào block.")
-
-            st.caption("Nguồn RSS (gõ vào ô, bấm dòng trống cuối để thêm):")
-            rss_rows = [{"Tên nguồn": k, "Link RSS": v}
-                        for k, v in blk.get("rss_feeds", {}).items()]
-            if not rss_rows:
-                rss_rows = [{"Tên nguồn": "", "Link RSS": ""}]
-            rss_edits[bid] = st.data_editor(
-                rss_rows, num_rows="dynamic", use_container_width=True,
-                key=f"rss_{bid}",
-                column_config={
-                    "Tên nguồn": st.column_config.TextColumn("Tên nguồn", width="medium"),
-                    "Link RSS": st.column_config.TextColumn("Link RSS", width="large"),
-                })
-
-            st.multiselect("Giờ cập nhật (giờ Việt Nam)", options=list(range(24)),
-                           default=blk.get("update_hours", []),
-                           format_func=lambda h: f"{h}h", key=f"hours_{bid}",
-                           help="Block chỉ cập nhật vào những giờ này. Muốn AI cân nhắc "
-                                "một bài giữa nhiều block, đặt chúng cùng giờ.")
-
-            st.number_input("Hiển thị ở hàng số mấy", min_value=1, max_value=20, step=1,
-                            value=int(blk.get("row", 1) or 1), key=f"row_{bid}",
-                            help="Các block cùng số hàng sẽ nằm cạnh nhau trên một hàng. "
-                                 "Ví dụ: GDP và Lạm phát cùng để hàng 1.")
-
-            if st.button("🗑️ Xóa block này", key=f"del_{bid}"):
-                st.session_state["draft"] = [b for b in st.session_state["draft"]
-                                             if b["id"] != bid]
-                st.rerun()
+    # Prompts
+    st.subheader("Prompt luồng tự động")
+    auto_prompt = st.text_area("Prompt (AI đọc transcript)", value=cfg["prompt_instructions"], height=120)
+    st.subheader("Prompt mẫu cho Gemini (luồng nhập tay)")
+    st.caption("Giữ nguyên hai chỗ {topics} và {links} — hệ thống tự điền chủ đề và link vào.")
+    manual_tpl = st.text_area("Prompt mẫu", value=cfg["manual_prompt_template"], height=200)
 
     st.markdown("---")
     if st.button("💾 Lưu tất cả", type="primary"):
-        new_blocks = []
-        for blk in st.session_state["draft"]:
-            bid = blk["id"]
-            name = (st.session_state.get(f"name_{bid}", "") or "").strip()
-            topics = [t.strip() for t in
-                      st.session_state.get(f"topics_{bid}", "").splitlines() if t.strip()]
-            rss = {}
-            for row in rss_edits.get(bid, []):
-                n = (row.get("Tên nguồn") or "").strip()
-                l = (row.get("Link RSS") or "").strip()
-                if n and l:
-                    rss[n] = l
-            hours = sorted(st.session_state.get(f"hours_{bid}", []))
-            row = int(st.session_state.get(f"row_{bid}", 1) or 1)
-            if name and rss:
-                new_blocks.append({"id": bid, "name": name, "topics": topics,
-                                   "rss_feeds": rss, "update_hours": hours, "row": row})
-        prompt = (st.session_state.get("global_prompt", "") or "").strip() or DEFAULT_PROMPT
-        model = st.session_state.get("model_select", DEFAULT_MODEL)
-        resummarize = bool(st.session_state.get("resummarize_toggle", True))
-        if not new_blocks:
-            st.error("Cần ít nhất một block có tên và có nguồn RSS.")
+        channels = []
+        for row in ch_edit:
+            name = (row.get("Tên kênh") or "").strip()
+            url = (row.get("Link kênh") or "").strip()
+            if name and url:
+                channels.append({"id": "ch_" + hashlib.md5(url.encode()).hexdigest()[:6],
+                                 "name": name, "url": url})
+        topics = []
+        for row in tp_edit:
+            nm = (row.get("Tên chủ đề") or "").strip()
+            if nm:
+                topics.append({"name": nm, "row": int(row.get("Hàng", 1) or 1)})
+        if not channels or not topics:
+            st.error("Cần ít nhất một kênh và một chủ đề.")
         else:
-            ok, msg = github_save(new_blocks, prompt, model, resummarize)
-            if ok:
-                st.session_state["live_blocks"] = new_blocks
-                st.session_state["live_prompt"] = prompt
-                st.session_state["live_model"] = model
-                st.session_state["live_resummarize"] = resummarize
-                st.session_state["draft"] = [dict(b) for b in new_blocks]
-                st.success(msg + " Robot sẽ dùng cấu hình mới từ lần chạy kế tiếp.")
-            else:
-                st.error(msg)
+            new_cfg = {
+                "model": st.session_state.get("model_select", DEFAULT_MODEL),
+                "update_hours": sorted(st.session_state.get("hours_select", [])),
+                "channels": channels, "topics": topics,
+                "prompt_instructions": auto_prompt.strip() or DEFAULT_AUTO_PROMPT,
+                "manual_prompt_template": manual_tpl.strip() or DEFAULT_MANUAL_TEMPLATE,
+            }
+            ok, msg = github_put_json(CONFIG_FILE, new_cfg, "Cap nhat cau hinh")
+            st.success(msg + " Khởi động lại sau ~1 phút để áp dụng.") if ok else st.error(msg)

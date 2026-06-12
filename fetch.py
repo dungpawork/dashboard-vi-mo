@@ -1,36 +1,31 @@
 # -*- coding: utf-8 -*-
 """
-fetch.py — robot lấy tin theo MÔ HÌNH GỘP (mỗi bài chỉ gọi AI một lần).
-Chạy mỗi giờ. Mỗi lần thức:
-  - đọc config.json (prompt chung + danh sách block; mỗi block có giờ riêng)
-  - xác định block "tới giờ" (hoặc tất cả nếu bấm Run workflow tay)
-  - quét GỘP tất cả nguồn của các block đó MỘT LẦN, loại trùng
-  - lọc theo từ khóa (bỏ bài rác, không tốn lượt AI)
-  - mỗi bài còn lại gọi AI MỘT LẦN: vừa tóm tắt, vừa chọn block phù hợp nhất
-  - lưu vào data.json theo block.
+fetch.py — LUỒNG TỰ ĐỘNG (GitHub Actions).
+Với mỗi kênh YouTube cấu hình sẵn: liệt kê video mới -> lấy transcript ->
+AI bóc thành các nhận định theo chủ đề -> lưu vào data.json.
 
-Biến môi trường: GEMINI_API_KEY (bắt buộc), FORCE_ALL ("true" = chạy mọi block).
+Biến môi trường: GEMINI_API_KEY (bắt buộc), FORCE_ALL ("true" = chạy bất kể giờ).
+Thư viện: feedparser, google-genai, youtube-transcript-api, requests
 """
 
 import os
 import re
-import html
-import time
 import json
+import time
 import hashlib
 from datetime import datetime, timezone, timedelta
 
+import requests
 import feedparser
 
-IMPACTS = ["Tích cực", "Tiêu cực", "Trung lập"]
-DEFAULT_PROMPT = ("Tóm tắt CỐT LÕI bài viết trong 5 đến 10 câu ngắn gọn bằng tiếng Việt, "
-                  "nêu rõ số liệu nếu có.")
 DEFAULT_MODEL = "gemini-2.5-flash-lite"
+DEFAULT_PROMPT = ("Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) của "
+                  "video và rút ra các NHẬN ĐỊNH kinh tế quan trọng, tóm tắt mỗi nhận "
+                  "định 2-4 câu, nêu rõ số liệu nếu có.")
 
-MAX_NEW_PER_RUN = 20        # tổng số bài MỚI gọi AI mỗi lần chạy (giới hạn quota)
-MAX_RESUMMARIZE_PER_RUN = 10  # số tin nhanh cũ được tóm tắt lại mỗi lần chạy
-MAX_STORE_PER_BLOCK = 100
-MAX_CONTENT_CHARS = 4000
+MAX_VIDEOS_PER_CHANNEL = 3     # mỗi kênh xử lý tối đa bao nhiêu video mới mỗi lần
+MAX_TRANSCRIPT_CHARS = 12000   # cắt transcript để giới hạn token
+MAX_STORE_INSIGHTS = 1000
 REQUEST_DELAY_SEC = 3
 
 CONFIG_FILE = "config.json"
@@ -38,21 +33,22 @@ DATA_FILE = "data.json"
 VN_TZ = timezone(timedelta(hours=7))
 
 
+# ---------------- Cấu hình & dữ liệu ----------------
+
 def load_config():
-    blocks, prompt, model, resummarize = [], DEFAULT_PROMPT, "", True
+    cfg = {}
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                c = json.load(f)
-            blocks = c.get("blocks", [])
-            prompt = c.get("prompt_instructions") or DEFAULT_PROMPT
-            model = c.get("model") or ""
-            resummarize = bool(c.get("resummarize", True))
+                cfg = json.load(f)
         except Exception:
             pass
-    # Ưu tiên model trong config; nếu trống thì lấy biến môi trường; cuối cùng là mặc định.
-    model = model or os.environ.get("GEMINI_MODEL", "") or DEFAULT_MODEL
-    return blocks, prompt, model, resummarize
+    channels = cfg.get("channels", [])
+    topics = [t["name"] if isinstance(t, dict) else t for t in cfg.get("topics", [])]
+    model = cfg.get("model") or os.environ.get("GEMINI_MODEL", "") or DEFAULT_MODEL
+    prompt = cfg.get("prompt_instructions") or DEFAULT_PROMPT
+    update_hours = cfg.get("update_hours", [])
+    return channels, topics, model, prompt, update_hours
 
 
 def load_data():
@@ -60,77 +56,107 @@ def load_data():
         try:
             with open(DATA_FILE, "r", encoding="utf-8") as f:
                 d = json.load(f)
-            if isinstance(d.get("blocks"), dict):
-                return d["blocks"]
+            return d.get("videos", {}), d.get("insights", [])
         except Exception:
             pass
-    return {}
+    return {}, []
 
 
-def save_data(blocks_data):
+def save_data(videos, insights):
     payload = {"updated_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
-               "blocks": blocks_data}
+               "videos": videos, "insights": insights[:MAX_STORE_INSIGHTS]}
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
 
-def make_id(link):
-    return hashlib.md5(link.encode("utf-8")).hexdigest()
+# ---------------- YouTube: kênh -> video ----------------
 
-
-def matches_keywords(text, keywords):
-    t = (text or "").lower()
-    return any((k or "").lower() in t for k in keywords)
-
-
-def clean_excerpt(text, maxlen=600):
-    """Làm sạch đoạn sapo/tóm lược từ RSS: bỏ thẻ HTML, gọn khoảng trắng, cắt ngắn."""
-    if not text:
-        return "(Không có nội dung tóm lược)"
-    t = re.sub(r"<[^>]+>", " ", text)     # bỏ thẻ HTML
-    t = html.unescape(t)
-    t = re.sub(r"\s+", " ", t).strip()
-    return (t[:maxlen] + "…") if len(t) > maxlen else (t or "(Không có nội dung tóm lược)")
-
-
-def get_full_text(link, fallback=""):
+def resolve_channel_id(url):
+    """Tìm channel_id (UC...) từ link kênh."""
+    m = re.search(r"/channel/(UC[0-9A-Za-z_-]{22})", url)
+    if m:
+        return m.group(1)
     try:
-        import trafilatura
-        downloaded = trafilatura.fetch_url(link)
-        if downloaded:
-            text = trafilatura.extract(downloaded, include_comments=False,
-                                       include_tables=False)
-            if text and len(text.strip()) > 120:
-                return text.strip()[:MAX_CONTENT_CHARS]
+        r = requests.get(url.split("?")[0], timeout=20,
+                         headers={"User-Agent": "Mozilla/5.0"})
+        m = re.search(r'"channelId":"(UC[0-9A-Za-z_-]{22})"', r.text)
+        if m:
+            return m.group(1)
+        m = re.search(r'/channel/(UC[0-9A-Za-z_-]{22})', r.text)
+        if m:
+            return m.group(1)
     except Exception:
         pass
-    return fallback
+    return None
 
 
-def analyze(api_key, model, instructions, active_blocks, title, content, max_retries=3):
-    """Một lần gọi AI: tóm tắt + chọn block + đánh giá tác động."""
+def list_channel_videos(url, limit):
+    """Trả về list video gần đây: {id, title, published, url}."""
+    cid = resolve_channel_id(url)
+    if not cid:
+        return []
+    feed_url = "https://www.youtube.com/feeds/videos.xml?channel_id=" + cid
+    try:
+        feed = feedparser.parse(feed_url)
+    except Exception:
+        return []
+    out = []
+    for e in feed.entries[:limit]:
+        vid = getattr(e, "yt_videoid", None) or (e.get("id", "").split(":")[-1])
+        if not vid:
+            continue
+        out.append({"id": vid, "title": e.get("title", ""),
+                    "published": e.get("published", ""),
+                    "url": "https://youtu.be/" + vid})
+    return out
+
+
+def get_transcript_text(video_id):
+    """Trả về transcript có mốc thời gian, hoặc None nếu không có."""
+    langs = ["vi", "en"]
+    segs = None
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        api = YouTubeTranscriptApi()
+        fetched = api.fetch(video_id, languages=langs)
+        segs = [(getattr(s, "start", 0), getattr(s, "text", "")) for s in fetched]
+    except Exception:
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi
+            data = YouTubeTranscriptApi.get_transcript(video_id, languages=langs)
+            segs = [(d.get("start", 0), d.get("text", "")) for d in data]
+        except Exception:
+            return None
+    if not segs:
+        return None
+    lines = []
+    for start, text in segs:
+        m, s = int(start // 60), int(start % 60)
+        lines.append(f"[{m}:{s:02d}] {text}")
+    return "\n".join(lines)[:MAX_TRANSCRIPT_CHARS]
+
+
+# ---------------- AI: transcript -> nhận định ----------------
+
+def analyze(api_key, model, instructions, topics, title, transcript, max_retries=3):
     from google import genai
     from google.genai import types
     client = genai.Client(api_key=api_key)
 
-    block_lines = "\n".join(
-        f"- {b['name']}: {', '.join(b.get('topics', []))}" for b in active_blocks)
-    names = [b["name"] for b in active_blocks]
-
     prompt = f"""{instructions}
 
-Tiêu đề: {title}
-Nội dung bài: {content}
+Tiêu đề video: {title}
+Bản ghi (mỗi dòng có mốc thời gian [phút:giây]):
+{transcript}
 
-Dưới đây là các nhóm tin và từ khóa của chúng:
-{block_lines}
+Hãy bóc các nhận định. Mỗi nhận định gồm:
+- expert: tên chuyên gia phát biểu; nếu không rõ tên thì ghi "(chủ kênh)".
+- topic: chọn ĐÚNG MỘT trong: {topics}
+- content: tóm tắt nhận định 2-4 câu, nêu rõ số liệu nếu có.
+- timestamp: mốc thời gian dạng mm:ss nơi nói nhận định đó.
+- refers_to: thời điểm/giai đoạn nhận định nói tới (vd "Tháng 6/2026"); không rõ để "".
 
-Hãy trả về JSON gồm:
-- "summary": bản tóm tắt theo yêu cầu trên.
-- "block": tên nhóm phù hợp nhất, chép ĐÚNG MỘT tên trong: {names}
-- "impact": tác động tới kinh tế/thị trường, chọn ĐÚNG MỘT trong: {IMPACTS}
-
-Chỉ trả JSON: {{"summary": "...", "block": "...", "impact": "..."}}"""
+Chỉ trả về JSON: {{"insights": [{{"expert":"...","topic":"...","content":"...","timestamp":"mm:ss","refers_to":"..."}}]}}"""
 
     for attempt in range(max_retries):
         try:
@@ -138,18 +164,48 @@ Chỉ trả JSON: {{"summary": "...", "block": "...", "impact": "..."}}"""
                 model=model, contents=prompt,
                 config=types.GenerateContentConfig(response_mime_type="application/json"))
             data = json.loads(resp.text)
-            impact = data.get("impact", "Trung lập")
-            if impact not in IMPACTS:
-                impact = "Trung lập"
-            return {"ok": True, "summary": data.get("summary", "").strip(),
-                    "block": data.get("block", ""), "impact": impact}
+            return {"ok": True, "insights": data.get("insights", [])}
         except Exception as e:
             msg = str(e); low = msg.lower()
             if "resource_exhausted" in low or "429" in msg:
-                return {"ok": False, "error": msg, "kind": "quota"}
+                return {"ok": False, "kind": "quota", "error": msg}
             if attempt < max_retries - 1:
                 time.sleep(5 * (attempt + 1)); continue
-            return {"ok": False, "error": msg, "kind": "other"}
+            return {"ok": False, "kind": "other", "error": msg}
+
+
+def ts_to_seconds(ts):
+    parts = str(ts).split(":")
+    try:
+        parts = [int(p) for p in parts]
+    except ValueError:
+        return 0
+    if len(parts) == 3:
+        return parts[0] * 3600 + parts[1] * 60 + parts[2]
+    if len(parts) == 2:
+        return parts[0] * 60 + parts[1]
+    return parts[0] if parts else 0
+
+
+def build_insight(video, channel_name, ins, topics):
+    topic = ins.get("topic", "")
+    if topic not in topics:
+        topic = topics[-1] if topics else "Khác"
+    ts = ins.get("timestamp", "")
+    url_at = video["url"] + (f"?t={ts_to_seconds(ts)}" if ts else "")
+    raw = video["id"] + topic + ins.get("content", "")[:30]
+    return {
+        "id": hashlib.md5(raw.encode("utf-8")).hexdigest(),
+        "video_id": video["id"], "channel": channel_name,
+        "expert": ins.get("expert", "").strip() or channel_name,
+        "topic": topic, "content": ins.get("content", "").strip(),
+        "video_timestamp": ts, "video_url_at": url_at,
+        "video_title": video.get("title", ""), "video_url": video["url"],
+        "posted_at": video.get("published", ""),
+        "refers_to": ins.get("refers_to", "").strip(),
+        "source": "tự động",
+        "created_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
+    }
 
 
 def main():
@@ -159,135 +215,52 @@ def main():
 
     force_all = os.environ.get("FORCE_ALL", "").lower() == "true"
     hour = datetime.now(VN_TZ).hour
-    blocks, instructions, model, resummarize = load_config()
-    blocks_data = load_data()
-    print(f"Dùng model: {model} | Tóm tắt lại tin nhanh: {resummarize}")
+    channels, topics, model, instructions, update_hours = load_config()
 
-    active = [b for b in blocks if force_all or hour in b.get("update_hours", [])]
-    print(f"Giờ VN {hour}h. Chạy tất cả: {force_all}. "
-          f"Số block tới giờ: {len(active)}")
-    if not active:
-        save_data(blocks_data)
-        print("Không có block nào tới giờ."); return
+    if not (force_all or hour in update_hours):
+        print(f"Giờ VN {hour}h không nằm trong lịch {update_hours}. Bỏ qua.")
+        return
 
-    name_to_id = {b["name"]: b["id"] for b in active}
+    videos, insights = load_data()
+    print(f"Model: {model} | {len(channels)} kênh | đã có {len(insights)} nhận định")
 
-    # Tất cả id đã có (trên MỌI block) -> mỗi bài chỉ xử lý một lần duy nhất
-    existing_ids = set()
-    for bd in blocks_data.values():
-        for a in bd.get("articles", []):
-            existing_ids.add(a["id"])
-
-    # Quét GỘP các nguồn của block đang tới giờ, loại trùng nguồn theo URL
-    feeds = {}
-    for b in active:
-        for name, url in b.get("rss_feeds", {}).items():
-            feeds.setdefault(url, name)
-
-    candidates = []
-    for url, source_name in feeds.items():
-        try:
-            feed = feedparser.parse(url)
-        except Exception:
-            continue
-        for entry in feed.entries:
-            link = entry.get("link", "")
-            if not link:
+    total_new = 0
+    stop = False
+    for ch in channels:
+        if stop:
+            break
+        ch_name = ch.get("name", ch.get("id"))
+        vids = list_channel_videos(ch.get("url", ""), MAX_VIDEOS_PER_CHANNEL)
+        print(f"== {ch_name}: thấy {len(vids)} video gần đây")
+        for v in vids:
+            if v["id"] in videos:
+                continue   # đã xử lý
+            transcript = get_transcript_text(v["id"])
+            if not transcript:
+                print(f"  (bỏ qua, không có transcript) {v['title'][:50]}")
+                videos[v["id"]] = {"channel": ch_name, "title": v["title"],
+                                   "published": v["published"], "url": v["url"],
+                                   "no_transcript": True}
                 continue
-            aid = make_id(link)
-            if aid in existing_ids:
-                continue
-            title = entry.get("title", "")
-            rss_sum = entry.get("summary", "") or entry.get("description", "")
-            matched = [b for b in active
-                       if matches_keywords(title + " " + rss_sum, b.get("topics", []))]
-            if not matched:
-                continue   # không khớp từ khóa block nào -> bỏ, không tốn AI
-            existing_ids.add(aid)
-            candidates.append({"id": aid, "title": title or "(Không tiêu đề)",
-                               "source": source_name, "link": link,
-                               "published": entry.get("published", ""),
-                               "rss_summary": rss_sum, "fallback_id": matched[0]["id"]})
-
-    candidates = candidates[:MAX_NEW_PER_RUN]
-    print(f"Có {len(candidates)} bài mới khớp từ khóa để xử lý.")
-
-    added = 0
-    added_ai = 0
-    added_excerpt = 0
-    ai_available = True
-    for art in candidates:
-        if ai_available:
-            full_text = get_full_text(art["link"], fallback=art["rss_summary"])
-            result = analyze(api_key, model, instructions, active, art["title"], full_text)
-            if result["ok"]:
-                bid = name_to_id.get(result["block"], art["fallback_id"])
-                summary = result["summary"]
-                impact = result["impact"]
-                by_ai = True
-            else:
-                # AI hết lượt hoặc lỗi -> dừng gọi AI, chuyển sang dùng sapo cho phần còn lại
-                print(f"AI không dùng được ({result.get('kind')}): "
-                      f"{str(result.get('error'))[:100]}")
-                print("→ Chuyển sang chế độ SAPO (không AI) cho các bài còn lại.")
-                ai_available = False
-
-        if not ai_available:
-            bid = art["fallback_id"]          # phân loại theo từ khóa đã khớp
-            summary = clean_excerpt(art["rss_summary"])
-            impact = "Trung lập"
-            by_ai = False
-
-        block_name = next((b["name"] for b in active if b["id"] == bid), bid)
-        bdata = blocks_data.setdefault(bid, {"articles": []})
-        bdata.setdefault("articles", []).insert(0, {
-            "id": art["id"], "title": art["title"], "source": art["source"],
-            "link": art["link"], "published": art["published"],
-            "summary": summary, "topic": block_name, "impact": impact,
-            "ai": by_ai,
-            "created_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
-        })
-        bdata["articles"] = bdata["articles"][:MAX_STORE_PER_BLOCK]
-        bdata["name"] = block_name
-        bdata["updated_at"] = datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M")
-        added += 1
-        if by_ai:
-            added_ai += 1
-            time.sleep(REQUEST_DELAY_SEC)
-        else:
-            added_excerpt += 1
-        tag = "AI" if by_ai else "sapo"
-        print(f"  + [{block_name}] ({tag}) {art['title'][:48]}")
-
-    # Nâng cấp các "tin nhanh" cũ (sapo) thành tóm tắt AI, nếu được bật và còn lượt
-    re_done = 0
-    if resummarize and ai_available:
-        for b in active:
-            if not ai_available or re_done >= MAX_RESUMMARIZE_PER_RUN:
+            result = analyze(api_key, model, instructions, topics, v["title"], transcript)
+            if not result["ok"]:
+                print(f"  Dừng vì lỗi ({result.get('kind')}): {str(result.get('error'))[:100]}")
+                stop = True
                 break
-            bdata = blocks_data.get(b["id"], {})
-            for a in bdata.get("articles", []):
-                if a.get("ai", True):
-                    continue   # đã qua AI rồi
-                if not ai_available or re_done >= MAX_RESUMMARIZE_PER_RUN:
-                    break
-                full_text = get_full_text(a.get("link", ""), fallback=a.get("summary", ""))
-                result = analyze(api_key, model, instructions, active, a.get("title", ""), full_text)
-                if not result["ok"]:
-                    print(f"Hết lượt khi tóm tắt lại ({result.get('kind')}); "
-                          "để các tin nhanh còn lại cho lần sau.")
-                    ai_available = False
-                    break
-                a["summary"] = result["summary"]
-                a["impact"] = result["impact"]
-                a["ai"] = True
-                re_done += 1
-                print(f"  ↑ Tóm tắt lại: {a.get('title','')[:48]}")
-                time.sleep(REQUEST_DELAY_SEC)
+            n = 0
+            for ins in result["insights"]:
+                if not ins.get("content"):
+                    continue
+                insights.insert(0, build_insight(v, ch_name, ins, topics))
+                n += 1
+            videos[v["id"]] = {"channel": ch_name, "title": v["title"],
+                               "published": v["published"], "url": v["url"]}
+            total_new += n
+            print(f"  + {n} nhận định từ: {v['title'][:50]}")
+            time.sleep(REQUEST_DELAY_SEC)
 
-    save_data(blocks_data)
-    print(f"Xong. Thêm {added} tin ({added_ai} qua AI, {added_excerpt} dùng sapo). "
-          f"Tóm tắt lại {re_done} tin nhanh cũ.")
+    save_data(videos, insights)
+    print(f"Xong. Thêm {total_new} nhận định mới.")
 
 
 if __name__ == "__main__":
