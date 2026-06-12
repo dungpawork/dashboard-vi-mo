@@ -24,6 +24,7 @@ VN_TZ = timezone(timedelta(hours=7))
 CONFIG_FILE = "config.json"
 DATA_FILE = "data.json"
 EXPERTS_FILE = "experts.json"
+SUGGEST_FILE = "suggestions.json"
 DEFAULT_MODEL = "gemini-2.5-flash-lite"
 GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.5-flash",
                  "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
@@ -764,13 +765,74 @@ elif page == "🧑‍💼 Chuyên gia":
 
 elif page == "✍️ Nhập tay":
     st.title("✍️ Nhập nhận định thủ công")
-    st.caption("① Dán link → ② Copy prompt cho Gemini → ③ Dán kết quả → ④ Xem trước & Lưu.")
+    st.caption("① Chọn video gợi ý hoặc dán link → ② Copy prompt cho Gemini → ③ Dán kết quả → ④ Xem trước & Lưu.")
 
-    st.subheader("① Dán link video (mỗi dòng một link)")
-    link_text = st.text_area("Link video", height=110,
+    # ---- ① a) Video mới do robot gợi ý ----
+    st.subheader("① Video mới từ kênh nguồn (AI gợi ý chủ đề)")
+    sugg = _read_json(SUGGEST_FILE, {})
+    sugg_items = sugg.get("items", {})
+    pending = {k: v for k, v in sugg_items.items()
+               if k not in videos and v.get("status") != "bỏ qua"
+               and v.get("topic") != "Không phù hợp"}
+    unsuitable = {k: v for k, v in sugg_items.items()
+                  if k not in videos and v.get("status") != "bỏ qua"
+                  and v.get("topic") == "Không phù hợp"}
+    picked_urls = []
+    if sugg.get("updated_at"):
+        st.caption(f"Robot quét lần cuối: **{sugg['updated_at']}**")
+    if not pending and not unsuitable:
+        st.info("Chưa có video gợi ý nào. Robot quét theo lịch trong Cấu hình "
+                "(hoặc vào GitHub → Actions → Run workflow để quét ngay).")
+    else:
+        def sugg_row(vid, v, key_prefix):
+            c = st.columns([0.5, 5, 1.6, 1.3])
+            sel = c[0].checkbox(" ", key=f"{key_prefix}_{vid}", label_visibility="collapsed")
+            c[1].markdown(f"**{v.get('title','')}**  \n"
+                          f"<span style='font-size:13px;color:{TH()['muted']}'>"
+                          f"{v.get('channel','')} · 📅 {v.get('published','')}</span>",
+                          unsafe_allow_html=True)
+            c[2].markdown(f"<span style='font-size:13px'>🏷️ {v.get('topic','')}</span>",
+                          unsafe_allow_html=True)
+            with c[3]:
+                if HAS_POPOVER:
+                    with st.popover("▶"):
+                        components.html(yt_iframe(vid, 0, 210), height=220)
+            return sel
+
+        for vid, v in sorted(pending.items(), key=lambda kv: kv[1].get("published", ""), reverse=True):
+            if sugg_row(vid, v, "sg"):
+                picked_urls.append(v.get("url") or f"https://youtu.be/{vid}")
+        if unsuitable:
+            with st.expander(f"🙈 {len(unsuitable)} video AI cho là KHÔNG phù hợp (mở nếu muốn vẫn làm)"):
+                for vid, v in sorted(unsuitable.items(), key=lambda kv: kv[1].get("published", ""), reverse=True):
+                    if sugg_row(vid, v, "su"):
+                        picked_urls.append(v.get("url") or f"https://youtu.be/{vid}")
+        if st.button("🙈 Bỏ qua các video đã tích (ẩn khỏi danh sách)"):
+            marked = 0
+            remote, _ = github_get_json(SUGGEST_FILE)
+            remote = remote or {"items": {}}
+            ritems = remote.get("items", {})
+            for vid in list(pending) + list(unsuitable):
+                if st.session_state.get(f"sg_{vid}") or st.session_state.get(f"su_{vid}"):
+                    if vid in ritems:
+                        ritems[vid]["status"] = "bỏ qua"
+                        marked += 1
+            if marked:
+                remote["items"] = ritems
+                ok, msg = commit_json(SUGGEST_FILE, remote, "Bo qua video goi y")
+                if ok:
+                    flash_and_rerun(f"Đã bỏ qua {marked} video.")
+                else:
+                    st.error(msg)
+            else:
+                st.warning("Chưa tích video nào.")
+
+    # ---- ① b) Dán link bổ sung ----
+    st.subheader("①b. Hoặc dán link video (mỗi dòng một link)")
+    link_text = st.text_area("Link video", height=90,
                              placeholder="https://youtu.be/...\nhttps://www.youtube.com/watch?v=...")
     reprocess = st.checkbox("🔁 Làm lại cả video đã xử lý trước đó")
-    raw_links = [l.strip() for l in link_text.splitlines() if l.strip()]
+    raw_links = picked_urls + [l.strip() for l in link_text.splitlines() if l.strip()]
     new_links, done_links, bad = [], [], 0
     for l in raw_links:
         vid = extract_video_id(l)
@@ -791,7 +853,7 @@ elif page == "✍️ Nhập tay":
         st.caption(f"Gồm {len(new_links)} video — bấm biểu tượng copy ở góc khối:")
         st.code(block, language="text")
     else:
-        st.info("Dán ít nhất một link mới ở bước ① để tạo khối prompt.")
+        st.info("Tích chọn video gợi ý hoặc dán ít nhất một link mới ở bước ① để tạo khối prompt.")
 
     st.subheader("③ Dán kết quả từ Gemini")
     pasted = st.text_area("Kết quả Gemini (JSON)", height=200)
@@ -829,6 +891,12 @@ elif page == "✍️ Nhập tay":
                 payload = {"updated_at": "(vừa cập nhật tay)", "videos": rv, "insights": merged}
                 ok, msg = commit_json(DATA_FILE, payload, "Them nhan dinh thu cong")
                 if ok:
+                    # Dọn các video vừa xử lý khỏi danh sách gợi ý (nếu có)
+                    rs, _ = github_get_json(SUGGEST_FILE)
+                    if rs and any(v in rs.get("items", {}) for v in new_vids):
+                        rs["items"] = {k: v for k, v in rs.get("items", {}).items()
+                                       if k not in new_vids}
+                        commit_json(SUGGEST_FILE, rs, "Don goi y da xu ly")
                     st.session_state.pop("preview", None)
                     flash_and_rerun(f"Đã lưu {len(ni)} nhận định cho {len(new_vids)} video.")
                 else:
