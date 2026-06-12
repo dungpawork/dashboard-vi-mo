@@ -767,6 +767,29 @@ elif page == "✍️ Nhập tay":
     st.title("✍️ Nhập nhận định thủ công")
     st.caption("① Chọn video gợi ý hoặc dán link → ② Copy prompt cho Gemini → ③ Dán kết quả → ④ Xem trước & Lưu.")
 
+    # ---- Thiết lập Gem (một lần) ----
+    def gem_instructions():
+        tpl = cfg["manual_prompt_template"].replace("{topics}", build_topic_guide(cfg))
+        anchor = "Danh sách video:\n{links}"
+        note = ("Người dùng sẽ gửi MỘT link video YouTube trong mỗi tin nhắn. "
+                "Hãy xử lý đúng link đó theo các yêu cầu trên và CHỈ trả về JSON.")
+        if anchor in tpl:
+            return tpl.replace(anchor, note)
+        return tpl.replace("{links}", "(link video sẽ được gửi trong tin nhắn)") + "\n\n" + note
+
+    with st.expander("🧞 Tối ưu: dùng Gemini Gem — thiết lập MỘT lần, sau đó mỗi video chỉ cần dán link"):
+        st.markdown("""
+**Cách thiết lập (làm một lần duy nhất):**
+1. Mở [gemini.google.com](https://gemini.google.com) → menu trái chọn **Gems** (Trình quản lý Gem) → **Tạo Gem mới**
+2. Đặt tên, ví dụ: `Bóc nhận định vĩ mô`
+3. Dán toàn bộ khối dưới đây vào ô **Hướng dẫn (Instructions)** → **Lưu**
+
+**Từ đó về sau, với mỗi video:** mở Gem này → dán **mỗi cái link video** → nhận JSON → dán về bước ③ bên dưới. Không cần copy prompt dài nữa.
+
+⚠️ Lưu ý: nếu sau này bạn đổi danh sách chủ đề/từ khóa trong Cấu hình, hãy mở lại mục này copy khối mới và cập nhật lại Instructions của Gem.
+""")
+        st.code(gem_instructions(), language="text")
+
     # ---- ① a) Video mới do robot gợi ý ----
     st.subheader("① Video mới từ kênh nguồn (AI gợi ý chủ đề)")
     sugg = _read_json(SUGGEST_FILE, {})
@@ -805,7 +828,9 @@ elif page == "✍️ Nhập tay":
             with c[4]:
                 if HAS_POPOVER and sel:
                     with st.popover("📋 Prompt"):
-                        st.caption("Copy khối này (icon góc phải) dán vào Gemini — chỉ 1 video:")
+                        st.caption("🧞 Dùng Gem: chỉ cần copy LINK này dán vào Gem:")
+                        st.code(url, language="text")
+                        st.caption("Hoặc chưa có Gem: copy PROMPT đầy đủ dán vào Gemini thường:")
                         st.code(one_video_prompt(url), language="text")
                 else:
                     st.button("📋 Prompt", disabled=True, key=f"pb_{key_prefix}_{vid}",
@@ -820,25 +845,35 @@ elif page == "✍️ Nhập tay":
                 for vid, v in sorted(unsuitable.items(), key=lambda kv: kv[1].get("published", ""), reverse=True):
                     if sugg_row(vid, v, "su"):
                         picked_urls.append(v.get("url") or f"https://youtu.be/{vid}")
-        if st.button("🙈 Bỏ qua các video đã tích (ẩn khỏi danh sách)"):
-            marked = 0
+        def _mark_skip(vids_to_skip, label):
             remote, _ = github_get_json(SUGGEST_FILE)
             remote = remote or {"items": {}}
             ritems = remote.get("items", {})
-            for vid in list(pending) + list(unsuitable):
-                if st.session_state.get(f"sg_{vid}") or st.session_state.get(f"su_{vid}"):
-                    if vid in ritems:
-                        ritems[vid]["status"] = "bỏ qua"
-                        marked += 1
-            if marked:
-                remote["items"] = ritems
-                ok, msg = commit_json(SUGGEST_FILE, remote, "Bo qua video goi y")
-                if ok:
-                    flash_and_rerun(f"Đã bỏ qua {marked} video.")
-                else:
-                    st.error(msg)
+            marked = 0
+            for vid in vids_to_skip:
+                if vid in ritems:
+                    ritems[vid]["status"] = "bỏ qua"
+                    marked += 1
+            if not marked:
+                st.warning(label)
+                return
+            remote["items"] = ritems
+            ok, msg = commit_json(SUGGEST_FILE, remote, "Bo qua video goi y")
+            if ok:
+                flash_and_rerun(f"Đã bỏ qua {marked} video.")
             else:
-                st.warning("Chưa tích video nào.")
+                st.error(msg)
+
+        bc1, bc2 = st.columns(2)
+        if bc1.button("🙈 Bỏ qua video ĐÃ tích", use_container_width=True):
+            ticked = [vid for vid in list(pending) + list(unsuitable)
+                      if st.session_state.get(f"sg_{vid}") or st.session_state.get(f"su_{vid}")]
+            _mark_skip(ticked, "Chưa tích video nào.")
+        if bc2.button("🧹 Bỏ qua tất cả video CHƯA tích", use_container_width=True,
+                      help="Giữ lại các video đã tích để làm; phần còn lại ẩn hết khỏi danh sách"):
+            unticked = [vid for vid in list(pending) + list(unsuitable)
+                        if not (st.session_state.get(f"sg_{vid}") or st.session_state.get(f"su_{vid}"))]
+            _mark_skip(unticked, "Không còn video nào chưa tích.")
 
     # ---- ① b) Dán link bổ sung ----
     st.subheader("①b. Hoặc dán link video (mỗi dòng một link)")
