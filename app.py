@@ -74,6 +74,18 @@ def topic_names(cfg):
     return [t["name"] if isinstance(t, dict) else t for t in cfg["topics"]]
 
 
+def build_topic_guide(cfg):
+    """Danh sách chủ đề kèm từ khóa, để đưa vào prompt giúp AI phân loại."""
+    lines = []
+    for t in cfg["topics"]:
+        if isinstance(t, dict):
+            kw = t.get("keywords", [])
+            lines.append(f"- {t['name']}" + (f" (từ khóa: {', '.join(kw)})" if kw else ""))
+        else:
+            lines.append(f"- {t}")
+    return "\n".join(lines)
+
+
 # ==================== GitHub ====================
 
 def get_secret(name):
@@ -567,7 +579,7 @@ elif page == "✍️ Nhập tay":
 
     st.subheader("② Copy khối này dán vào Gemini")
     if new_links:
-        block = (cfg["manual_prompt_template"].replace("{topics}", ", ".join(TOPICS))
+        block = (cfg["manual_prompt_template"].replace("{topics}", build_topic_guide(cfg))
                  .replace("{links}", "\n".join(new_links)))
         st.caption(f"Gồm {len(new_links)} video mới — bấm biểu tượng copy ở góc khối:")
         st.code(block, language="text")
@@ -638,13 +650,16 @@ else:
                              column_config={"Tên kênh": st.column_config.TextColumn(width="medium"),
                                             "Link kênh": st.column_config.TextColumn(width="large")})
 
-    st.subheader("Chủ đề — trang Nhận định (cột Hàng = bố cục)")
+    st.subheader("Chủ đề — trang Nhận định (Hàng = bố cục, Từ khóa = gợi ý cho AI)")
+    st.caption("Từ khóa ngăn nhau bằng dấu phẩy; được đưa vào prompt để AI phân loại đúng chủ đề.")
     tp_rows = [{"Tên chủ đề": (t["name"] if isinstance(t, dict) else t),
-                "Hàng": (t.get("row", 1) if isinstance(t, dict) else 1)} for t in cfg["topics"]] \
-        or [{"Tên chủ đề": "", "Hàng": 1}]
+                "Hàng": (t.get("row", 1) if isinstance(t, dict) else 1),
+                "Từ khóa": ", ".join(t.get("keywords", [])) if isinstance(t, dict) else ""}
+               for t in cfg["topics"]] or [{"Tên chủ đề": "", "Hàng": 1, "Từ khóa": ""}]
     tp_edit = st.data_editor(tp_rows, num_rows="dynamic", use_container_width=True, key="tp_editor",
-                             column_config={"Tên chủ đề": st.column_config.TextColumn(width="large"),
-                                            "Hàng": st.column_config.NumberColumn(min_value=1, max_value=20, step=1)})
+                             column_config={"Tên chủ đề": st.column_config.TextColumn(width="medium"),
+                                            "Hàng": st.column_config.NumberColumn(min_value=1, max_value=20, step=1),
+                                            "Từ khóa": st.column_config.TextColumn(width="large")})
 
     st.subheader("Chuyên gia — trang Chuyên gia (cột Hàng = bố cục)")
     st.caption("Tên phải khớp tên chuyên gia trong dữ liệu. Để trống bảng này thì trang "
@@ -667,7 +682,8 @@ else:
         channels = [{"id": "ch_" + hashlib.md5((r.get("Link kênh") or "").encode()).hexdigest()[:6],
                      "name": (r.get("Tên kênh") or "").strip(), "url": (r.get("Link kênh") or "").strip()}
                     for r in ch_edit if (r.get("Tên kênh") or "").strip() and (r.get("Link kênh") or "").strip()]
-        topics = [{"name": (r.get("Tên chủ đề") or "").strip(), "row": int(r.get("Hàng", 1) or 1)}
+        topics = [{"name": (r.get("Tên chủ đề") or "").strip(), "row": int(r.get("Hàng", 1) or 1),
+                   "keywords": [k.strip() for k in (r.get("Từ khóa") or "").split(",") if k.strip()]}
                   for r in tp_edit if (r.get("Tên chủ đề") or "").strip()]
         experts = [{"name": (r.get("Tên chuyên gia") or "").strip(), "row": int(r.get("Hàng", 1) or 1)}
                    for r in ex_edit if (r.get("Tên chuyên gia") or "").strip()]
