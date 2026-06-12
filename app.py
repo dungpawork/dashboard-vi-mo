@@ -697,14 +697,15 @@ elif page == "✍️ Nhập tay":
                 remote = remote or {"videos": {}, "insights": []}
                 rv = remote.get("videos", {})
                 rv.update(preview["videos"])
-                existing = {i["id"] for i in remote.get("insights", [])}
-                merged = [i for i in ni if i["id"] not in existing] + remote.get("insights", [])
+                # Ghi đè: bỏ nhận định cũ của các video vừa nạp, rồi thêm bản mới
+                new_vids = set(preview["videos"].keys())
+                kept = [i for i in remote.get("insights", []) if i.get("video_id") not in new_vids]
+                merged = ni + kept
                 payload = {"updated_at": "(vừa cập nhật tay)", "videos": rv, "insights": merged}
                 ok, msg = commit_json(DATA_FILE, payload, "Them nhan dinh thu cong")
                 if ok:
-                    added = len([i for i in ni if i["id"] not in existing])
                     st.session_state.pop("preview", None)
-                    flash_and_rerun(f"Đã lưu {added} nhận định.")
+                    flash_and_rerun(f"Đã lưu {len(ni)} nhận định cho {len(new_vids)} video.")
                 else:
                     st.error(msg)
 
@@ -734,6 +735,31 @@ elif page == "🗂️ Quản lý nguồn":
 
         order = sorted(by_video.items(), key=lambda kv: (chan_of(*kv), date_of(*kv)), reverse=False)
 
+        # Tìm kiếm theo tiêu đề / kênh / mã video
+        q = st.text_input("🔎 Tìm theo kênh hoặc tiêu đề video", placeholder="vd: VIF, lạm phát...").strip().lower()
+        if q:
+            def match(vid, a0):
+                title = (videos.get(vid, {}).get("title", "") or a0[0].get("video_title", "")).lower()
+                return q in chan_of(vid, a0).lower() or q in title or q in vid.lower()
+            order = [(vid, a0) for vid, a0 in order if match(vid, a0)]
+            st.caption(f"Tìm thấy {len(order)} nguồn khớp.")
+
+        # Cập nhật nhanh nguồn cũ: lấy link các nguồn (theo bộ lọc) để chạy lại qua Gemini
+        with st.expander("⚡ Cập nhật nhanh dữ liệu nguồn cũ (chạy lại qua Gemini)"):
+            st.caption("Copy khối dưới đây dán vào Gemini, rồi mang kết quả sang trang **Nhập tay** "
+                       "(tích '🔁 Làm lại') để ghi đè dữ liệu mới cho các nguồn này.")
+            only_missing = st.checkbox("Chỉ lấy nguồn còn thiếu tiêu đề", value=True)
+            upd = [(vid, a0) for vid, a0 in order
+                   if (not only_missing) or not (videos.get(vid, {}).get("title", "") or a0[0].get("video_title", ""))]
+            links = [vurl_of(vid, a0) for vid, a0 in upd]
+            if links:
+                block = (cfg["manual_prompt_template"].replace("{topics}", build_topic_guide(cfg))
+                         .replace("{links}", "\n".join(links)))
+                st.caption(f"{len(links)} nguồn:")
+                st.code(block, language="text")
+            else:
+                st.info("Không có nguồn nào cần cập nhật theo điều kiện trên.")
+
         st.subheader("Thống kê nguồn")
         h = st.columns([2, 3, 1.3, 0.8, 1])
         for col, t in zip(h, ["Kênh", "Tiêu đề", "Ngày đăng", "Số NĐ", "Xem"]):
@@ -753,7 +779,7 @@ elif page == "🗂️ Quản lý nguồn":
                     st.markdown(f"[▶ Mở]({vurl_of(vid, a0)})")
 
         st.subheader("Sửa / xóa từng nguồn")
-        editors, ch_edit, del_src, orig = {}, {}, {}, {}
+        editors, ch_edit, ti_edit, del_src, orig = {}, {}, {}, {}, {}
         for vid, child in order:
             meta = videos.get(vid, {})
             title = meta.get("title", "") or (child[0].get("video_title", ""))
@@ -763,11 +789,14 @@ elif page == "🗂️ Quản lý nguồn":
             label = f"🎬 {chan} · youtu.be/{vid}" + (f" — {title[:40]}" if title else "") + f" ({len(child)})"
             with st.expander(label):
                 lc, rc = st.columns([4, 1])
-                lc.markdown(f"🔗 Video gốc: [{vurl}]({vurl})")
+                with lc:
+                    st.caption("Link video gốc (bấm icon để copy):")
+                    st.code(vurl, language="text")
                 with rc:
                     if HAS_POPOVER:
                         with st.popover("▶ Xem nhanh"):
                             components.html(yt_iframe(vid, 0, 210), height=220)
+                ti_edit[vid] = st.text_input("Tiêu đề video", value=title, key="ti_" + vid)
                 ch_edit[vid] = st.text_input("Tên kênh (áp cho mọi nhận định của nguồn)",
                                              value=chan, key="chan_" + vid)
                 editors[vid] = st.data_editor(
@@ -781,11 +810,12 @@ elif page == "🗂️ Quản lý nguồn":
                 del_src[vid] = st.checkbox("🗑️ Xóa toàn bộ nguồn này", key="ds_" + vid)
 
         if st.button("💾 Lưu thay đổi", type="primary"):
-            edits, deleted, del_videos = {}, set(), set()
-            for vid in by_video:
+            edits, deleted, del_videos, title_edit = {}, set(), set(), {}
+            for vid, child in order:
                 if del_src.get(vid):
                     del_videos.add(vid)
                     continue
+                title_edit[vid] = str(ti_edit.get(vid) or "").strip()
                 present = set()
                 for r in editors.get(vid, []):
                     rid = r.get("id")
@@ -795,13 +825,15 @@ elif page == "🗂️ Quản lý nguồn":
                     edits[rid] = {"expert": str(r.get("Tác giả") or "").strip(),
                                   "region": r.get("Khu vực") or "Việt Nam",
                                   "topic": r.get("Chủ đề") or "",
-                                  "channel": str(ch_edit.get(vid) or "").strip()}
+                                  "channel": str(ch_edit.get(vid) or "").strip(),
+                                  "title": title_edit[vid]}
                 deleted |= (orig[vid] - present)
             remote, _ = github_get_json(DATA_FILE)
             remote = remote or {"videos": {}, "insights": []}
             rvideos = {k: v for k, v in remote.get("videos", {}).items() if k not in del_videos}
-            for vid in del_videos:
-                pass
+            for vid, t in title_edit.items():
+                if vid in rvideos:
+                    rvideos[vid]["title"] = t
             out = []
             for a in remote.get("insights", []):
                 if a.get("video_id") in del_videos or a["id"] in deleted:
@@ -814,6 +846,7 @@ elif page == "🗂️ Quản lý nguồn":
                         a["region"] = e["region"]
                     if e["topic"] in TOPICS:
                         a["topic"] = e["topic"]
+                    a["video_title"] = e["title"]
                     if e["channel"]:
                         a["channel"] = e["channel"]
                         if a.get("video_id") in rvideos:
