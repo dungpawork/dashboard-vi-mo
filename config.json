@@ -18,34 +18,102 @@
   "topics": [
     {
       "name": "GDP & Tăng trưởng",
-      "row": 1
+      "row": 1,
+      "keywords": [
+        "GDP",
+        "tăng trưởng kinh tế",
+        "tổng sản phẩm quốc nội",
+        "sản xuất công nghiệp IIP",
+        "chỉ số PMI",
+        "chỉ số bán lẻ hàng hóa và dịch vụ"
+      ]
     },
     {
       "name": "Lạm phát",
-      "row": 1
+      "row": 1,
+      "keywords": [
+        "lạm phát",
+        "CPI",
+        "giá tiêu dùng",
+        "giá xăng dầu",
+        "CPI giao thông",
+        "giá điện",
+        "giá thịt heo",
+        "CPI hàng hóa và dịch vụ ăn uống",
+        "CPI vật liệu xây dựng và nhà ở"
+      ]
     },
     {
-      "name": "Lãi suất",
-      "row": 2
+      "name": "Thị trường 1 - Dân cư",
+      "row": 2,
+      "keywords": [
+        "Thị trường 1",
+        "lãi suất",
+        "lãi suất huy động",
+        "ngân hàng thương mại",
+        "tăng trưởng tín dụng",
+        "tăng trưởng huy động",
+        "cung tiền M2"
+      ]
     },
     {
-      "name": "Tỷ giá",
-      "row": 2
+      "name": "Thị trường 2 - Liên NH",
+      "row": 2,
+      "keywords": [
+        "thị trường 2",
+        "lãi suất liên ngân hàng",
+        "lãi suất qua đêm"
+      ]
     },
     {
-      "name": "Chứng khoán",
-      "row": 2
-    },
-    {
-      "name": "Bất động sản",
-      "row": 3
+      "name": "Thị trường 3 - OMO/Tín phiếu",
+      "row": 2,
+      "keywords": [
+        "Thị trường 3",
+        "Bơm hút OMO/Tín phiếu",
+        "tổng bơm hút ròng",
+        "OMO",
+        "Tín phiếu",
+        "Lãi suất tín phiếu"
+      ]
     },
     {
       "name": "Chính sách Tài khóa",
-      "row": 3
+      "row": 3,
+      "keywords": [
+        "Chính sách Tài khóa",
+        "tài khóa",
+        "thuế",
+        "tăng thuế",
+        "giảm thuế",
+        "ngân sách",
+        "đầu tư công",
+        "giải ngân đầu tư công",
+        "thâm hụt ngân sách nhà nước",
+        "thặng dư ngân sách nhà nước",
+        "phát hành trái phiếu chính phủ"
+      ]
+    },
+    {
+      "name": "Tỷ giá",
+      "row": 3,
+      "keywords": [
+        "tỷ giá",
+        "USDVND",
+        "ngân hàng thương mại bán ra",
+        "tỷ giá tự do",
+        "tỷ giá chợ đen",
+        "FED",
+        "FED FUND RATE",
+        "DXY",
+        "sức mạnh đồng dollar",
+        "cán cân thương mại",
+        "cán cân vốn",
+        "dự trữ ngoại hối"
+      ]
     }
   ],
   "prompt_instructions": "Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) của video và rút ra các NHẬN ĐỊNH kinh tế, tóm tắt mỗi nhận định 2-4 câu (nêu số liệu nếu có) và đánh giá tác động (Tích cực/Trung lập/Tiêu cực).",
-  "manual_prompt_template": "Bạn là trợ lý phân tích kinh tế. Với MỖI link video dưới đây, hãy xem video và rút ra các nhận định kinh tế quan trọng.\n\nPhân loại mỗi nhận định vào ĐÚNG MỘT chủ đề: {topics}\n\nVới mỗi video trả về: video (link), channel (tên kênh), posted_at (ngày đăng YYYY-MM-DD nếu biết), và insights (danh sách nhận định). Mỗi nhận định gồm: expert (tên chuyên gia phát biểu, không rõ thì ghi tên kênh), topic (trong danh sách trên), content (2-4 câu, nêu số liệu), impact (đánh giá tác động tới kinh tế/thị trường: \"Tích cực\", \"Trung lập\" hoặc \"Tiêu cực\"), timestamp (mm:ss), refers_to (thời điểm nhận định nói tới, vd \"Quý 3/2026\", \"Tháng 6/2026\", \"Năm 2026\"; không rõ để \"\").\n\nCHỈ trả về JSON, không thêm chữ nào khác:\n[{\"video\":\"<link>\",\"channel\":\"...\",\"posted_at\":\"...\",\"insights\":[{\"expert\":\"...\",\"topic\":\"...\",\"content\":\"...\",\"impact\":\"...\",\"timestamp\":\"mm:ss\",\"refers_to\":\"...\"}]}]\n\nDanh sách video:\n{links}",
+  "manual_prompt_template": "Bạn là trợ lý phân tích kinh tế. Với MỖI link video dưới đây, xem video và rút ra các nhận định kinh tế quan trọng.\n\nPhân loại mỗi nhận định vào ĐÚNG MỘT chủ đề trong danh sách sau (mỗi chủ đề kèm từ khóa gợi ý):\n{topics}\n\nMỗi video trả về: video, channel, posted_at (YYYY-MM-DD), insights[]. Mỗi nhận định: expert, topic (chép ĐÚNG TÊN chủ đề ở danh sách trên, phần trước dấu ngoặc), content (2-4 câu, nêu số liệu), impact (Tích cực/Trung lập/Tiêu cực), timestamp (mm:ss), refers_to (vd \"Quý 3/2026\", \"Tháng 6/2026\", \"Năm 2026\"; không rõ để \"\").\n\nCHỈ trả về JSON:\n[{\"video\":\"<link>\",\"channel\":\"...\",\"posted_at\":\"...\",\"insights\":[{\"expert\":\"...\",\"topic\":\"...\",\"content\":\"...\",\"impact\":\"...\",\"timestamp\":\"mm:ss\",\"refers_to\":\"...\"}]}]\n\nDanh sách video:\n{links}",
   "experts": []
 }
