@@ -1,5 +1,5 @@
 {
-  "updated_at": "(vừa sửa tay)",
+  "updated_at": "(vừa cập nhật tay)",
   "videos": {
     "avbDkOzPB30": {
       "channel": "Tài chính & Kinh doanh",
@@ -14,5 +14,91 @@
       "url": "https://youtu.be/RPJ9K0VjIdY"
     }
   },
-  "insights": []
+  "insights": [
+    {
+      "id": "d1c2dc5cb043591ec5bfbd5d8eb2b7d6",
+      "video_id": "avbDkOzPB30",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Tài chính & Kinh doanh",
+      "topic": "GDP & Tăng trưởng",
+      "content": "Mặc dù tăng trưởng GDP quý 1 đạt mức tích cực là 7,83%, mục tiêu cố gắng đạt mức tăng trưởng hai con số trong năm nay của chúng ta vẫn đối diện với thử thách lớn. Kịch bản tăng trưởng tiêu cực đối với GDP được dự báo có khả năng rơi vào mức dưới 8% nếu các lực cản từ biến động địa chính trị toàn cầu tiếp tục kéo dài.",
+      "impact": "Tiêu cực",
+      "video_timestamp": "02:13",
+      "video_url_at": "https://youtu.be/avbDkOzPB30?t=133",
+      "video_title": "",
+      "video_url": "https://youtu.be/avbDkOzPB30",
+      "posted_at": "2026-04-10",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "846b0c0313136a4b190f62fc8922e7f9",
+      "video_id": "avbDkOzPB30",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Trần Ngọc Báu",
+      "topic": "GDP & Tăng trưởng",
+      "content": "Tăng trưởng kinh tế trong quý 2 được dự báo sẽ đối mặt với nhiều thách thức lớn và không còn thuận lợi như giai đoạn quý 1. Khu vực công nghiệp nội địa trong nước và các ngành dịch vụ vận tải, logistics sẽ chịu áp lực suy giảm do sự thẩm thấu tiêu cực của chi phí giá dầu thô vào hoạt động sản xuất đầu vào.",
+      "impact": "Tiêu cực",
+      "video_timestamp": "08:23",
+      "video_url_at": "https://youtu.be/avbDkOzPB30?t=503",
+      "video_title": "",
+      "video_url": "https://youtu.be/avbDkOzPB30",
+      "posted_at": "2026-04-10",
+      "refers_to": "Quý 2/2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "443094086b517b7176a9b5bc4c62e16a",
+      "video_id": "avbDkOzPB30",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Trần Ngọc Báu",
+      "topic": "Lạm phát",
+      "content": "Trong kịch bản trung lập khả dĩ nhất, lạm phát bình quân cả năm của Việt Nam được dự báo dao động quanh mức 4,0% đến 4,5%, tức nằm trong giới hạn dưới mục tiêu trần 4,5% của Chính phủ. Tuy nhiên, nếu rơi vào kịch bản tiêu cực do giá dầu neo cao, lạm phát bình quân cả năm có thể chạm ngưỡng 5% và chỉ số CPI tháng 4 có khả năng vượt mốc 5%.",
+      "impact": "Tiêu cực",
+      "video_timestamp": "32:19",
+      "video_url_at": "https://youtu.be/avbDkOzPB30?t=1939",
+      "video_title": "",
+      "video_url": "https://youtu.be/avbDkOzPB30",
+      "posted_at": "2026-04-10",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "3e2fc41115e3a19b430f3ad11ea9b0b9",
+      "video_id": "avbDkOzPB30",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Tài chính & Kinh doanh",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Dư địa điều hành của chính sách tiền tệ ngay từ đầu năm đã tương đối mỏng do những căng thẳng về thanh khoản hệ thống liên ngân hàng. Do đó, định hướng tốc độ tăng trưởng tín dụng mục tiêu xét cho cả năm cũng đã được chủ động điều chỉnh giảm xuống còn ở mức 15%.",
+      "impact": "Trung lập",
+      "video_timestamp": "41:24",
+      "video_url_at": "https://youtu.be/avbDkOzPB30?t=2484",
+      "video_title": "",
+      "video_url": "https://youtu.be/avbDkOzPB30",
+      "posted_at": "2026-04-10",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "fec59c4afb507eb14c6ba4ff079ec8d8",
+      "video_id": "avbDkOzPB30",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Trần Ngọc Báu",
+      "topic": "Tỷ giá",
+      "content": "Nếu giá xăng dầu thế giới tiếp tục duy trì ở mức cao như hiện tại, Việt Nam dự báo sẽ phải đối mặt với áp lực thâm hụt lớn và mất thêm khoảng 15 tỷ USD trong cả năm cho chi phí nhập khẩu nhiên liệu bổ sung. Con số thâm hụt giả định này được đánh giá là rất lớn và tạo áp lực trực tiếp khi đặt trong tương quan quy mô dự trữ ngoại hối quốc gia hiện đạt khoảng 80 tỷ USD.",
+      "impact": "Tiêu cực",
+      "video_timestamp": "01:03:05",
+      "video_url_at": "https://youtu.be/avbDkOzPB30?t=3785",
+      "video_title": "",
+      "video_url": "https://youtu.be/avbDkOzPB30",
+      "posted_at": "2026-04-10",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    }
+  ]
 }
