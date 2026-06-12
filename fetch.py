@@ -1,293 +1,178 @@
 # -*- coding: utf-8 -*-
 """
-fetch.py — LUỒNG TỰ ĐỘNG (GitHub Actions).
-Với mỗi kênh YouTube cấu hình sẵn: liệt kê video mới -> lấy transcript ->
-AI bóc thành các nhận định theo chủ đề -> lưu vào data.json.
+ROBOT GỢI Ý VIDEO (chạy trên GitHub Actions)
+1) Quét RSS các kênh YouTube nguồn (trong config.json)
+2) Với video MỚI (chưa xử lý, chưa gợi ý), nhờ Gemini phân loại TIÊU ĐỀ
+   vào 1 trong các chủ đề — hoặc "Không phù hợp"
+3) Ghi kết quả vào suggestions.json để trang Nhập tay hiển thị cho người chọn
 
-Biến môi trường: GEMINI_API_KEY (bắt buộc), FORCE_ALL ("true" = chạy bất kể giờ).
-Thư viện: feedparser, google-genai, youtube-transcript-api, requests
+Không lấy transcript, không tạo nhận định — phần đó người dùng làm qua app Gemini.
 """
 
 import os
 import re
 import json
 import time
-import hashlib
-from datetime import datetime, timezone, timedelta
 
 import requests
 import feedparser
 
-DEFAULT_MODEL = "gemini-2.5-flash-lite"
-DEFAULT_PROMPT = ("Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) của "
-                  "video và rút ra các NHẬN ĐỊNH kinh tế quan trọng, tóm tắt mỗi nhận "
-                  "định 2-4 câu, nêu rõ số liệu nếu có. Ưu tiên nhận định dự báo tương lai và so sánh với mục tiêu/kế hoạch.")
-
-MAX_VIDEOS_PER_CHANNEL = 3     # mỗi kênh xử lý tối đa bao nhiêu video mới mỗi lần
-MAX_TRANSCRIPT_CHARS = 12000   # cắt transcript để giới hạn token
-MAX_STORE_INSIGHTS = 1000
-REQUEST_DELAY_SEC = 3
-
 CONFIG_FILE = "config.json"
 DATA_FILE = "data.json"
-VN_TZ = timezone(timedelta(hours=7))
+SUGGEST_FILE = "suggestions.json"
+NOT_SUITABLE = "Không phù hợp"
+MAX_PER_CHANNEL = 10
 
 
-# ---------------- Cấu hình & dữ liệu ----------------
+def now_vn():
+    from datetime import datetime, timezone, timedelta
+    return datetime.now(timezone(timedelta(hours=7)))
+
+
+def load_json(path, default):
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return default
+
 
 def load_config():
-    cfg = {}
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-        except Exception:
-            pass
-    channels = cfg.get("channels", [])
-    topics_raw = cfg.get("topics", [])
-    model = cfg.get("model") or os.environ.get("GEMINI_MODEL", "") or DEFAULT_MODEL
-    prompt = cfg.get("prompt_instructions") or DEFAULT_PROMPT
-    update_hours = cfg.get("update_hours", [])
-    return channels, topics_raw, model, prompt, update_hours
-
-
-def load_data():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r", encoding="utf-8") as f:
-                d = json.load(f)
-            return d.get("videos", {}), d.get("insights", [])
-        except Exception:
-            pass
-    return {}, []
-
-
-def save_data(videos, insights):
-    payload = {"updated_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
-               "videos": videos, "insights": insights[:MAX_STORE_INSIGHTS]}
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-
-
-def names_of(topics_raw):
-    return [t["name"] if isinstance(t, dict) else t for t in topics_raw]
-
-
-def build_topic_guide(topics_raw):
-    lines = []
-    for t in topics_raw:
+    cfg = load_json(CONFIG_FILE, {})
+    topics = [t["name"] if isinstance(t, dict) else t for t in cfg.get("topics", [])]
+    kw = {}
+    for t in cfg.get("topics", []):
         if isinstance(t, dict):
-            kw = t.get("keywords", [])
-            lines.append(f"- {t['name']}" + (f" (từ khóa: {', '.join(kw)})" if kw else ""))
-        else:
-            lines.append(f"- {t}")
-    return "\n".join(lines)
+            kw[t["name"]] = t.get("keywords", [])
+    return (cfg.get("channels", []), topics, kw,
+            cfg.get("model", "gemini-2.5-flash-lite"), cfg.get("update_hours", []))
 
-
-# ---------------- YouTube: kênh -> video ----------------
 
 def resolve_channel_id(url):
-    """Tìm channel_id (UC...) từ link kênh."""
-    m = re.search(r"/channel/(UC[0-9A-Za-z_-]{22})", url)
+    m = re.search(r"/channel/(UC[0-9A-Za-z_-]{22})", url or "")
     if m:
         return m.group(1)
     try:
-        r = requests.get(url.split("?")[0], timeout=20,
+        r = requests.get((url or "").split("?")[0], timeout=20,
                          headers={"User-Agent": "Mozilla/5.0"})
         m = re.search(r'"channelId":"(UC[0-9A-Za-z_-]{22})"', r.text)
         if m:
             return m.group(1)
-        m = re.search(r'/channel/(UC[0-9A-Za-z_-]{22})', r.text)
-        if m:
-            return m.group(1)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"    Lỗi tìm channel id: {e}")
     return None
 
 
-def list_channel_videos(url, limit):
-    """Trả về list video gần đây: {id, title, published, url}."""
+def list_channel_videos(url, limit=MAX_PER_CHANNEL):
     cid = resolve_channel_id(url)
     if not cid:
         return []
-    feed_url = "https://www.youtube.com/feeds/videos.xml?channel_id=" + cid
-    try:
-        feed = feedparser.parse(feed_url)
-    except Exception:
-        return []
+    feed = feedparser.parse("https://www.youtube.com/feeds/videos.xml?channel_id=" + cid)
     out = []
     for e in feed.entries[:limit]:
-        vid = getattr(e, "yt_videoid", None) or (e.get("id", "").split(":")[-1])
-        if not vid:
-            continue
-        out.append({"id": vid, "title": e.get("title", ""),
-                    "published": e.get("published", ""),
-                    "url": "https://youtu.be/" + vid})
+        vid = getattr(e, "yt_videoid", None) or e.get("id", "").split(":")[-1]
+        if vid:
+            out.append({"id": vid, "title": e.get("title", ""),
+                        "published": (e.get("published", "") or "")[:10],
+                        "url": "https://youtu.be/" + vid})
     return out
 
 
-def get_transcript_text(video_id):
-    """Trả về transcript có mốc thời gian, hoặc None nếu không có."""
-    langs = ["vi", "en"]
-    segs = None
-    try:
-        from youtube_transcript_api import YouTubeTranscriptApi
-        api = YouTubeTranscriptApi()
-        fetched = api.fetch(video_id, languages=langs)
-        segs = [(getattr(s, "start", 0), getattr(s, "text", "")) for s in fetched]
-    except Exception:
-        try:
-            from youtube_transcript_api import YouTubeTranscriptApi
-            data = YouTubeTranscriptApi.get_transcript(video_id, languages=langs)
-            segs = [(d.get("start", 0), d.get("text", "")) for d in data]
-        except Exception:
-            return None
-    if not segs:
-        return None
-    lines = []
-    for start, text in segs:
-        m, s = int(start // 60), int(start % 60)
-        lines.append(f"[{m}:{s:02d}] {text}")
-    return "\n".join(lines)[:MAX_TRANSCRIPT_CHARS]
+def build_classify_prompt(items, topics, kw):
+    guide = []
+    for t in topics:
+        ks = kw.get(t, [])
+        guide.append(f"- {t}" + (f" (từ khóa: {', '.join(ks)})" if ks else ""))
+    lines = [f"{it['id']} | {it['title']}" for it in items]
+    return (
+        "Bạn là trợ lý phân loại video kinh tế. Dưới đây là danh sách video dạng `mã | tiêu đề`.\n"
+        "Với MỖI video, chỉ dựa trên TIÊU ĐỀ, chọn ĐÚNG MỘT chủ đề phù hợp nhất trong danh sách:\n"
+        + "\n".join(guide) + "\n"
+        f"Nếu tiêu đề không liên quan các chủ đề trên (giải trí, quảng cáo, kỹ năng cá nhân, "
+        f"chứng khoán riêng lẻ không vĩ mô...), trả \"{NOT_SUITABLE}\".\n\n"
+        "CHỈ trả về JSON: {\"<mã>\": \"<tên chủ đề>\", ...}\n\nDanh sách:\n" + "\n".join(lines))
 
 
-# ---------------- AI: transcript -> nhận định ----------------
-
-def analyze(api_key, model, instructions, topic_guide, title, transcript, max_retries=3):
+def classify(items, topics, kw, model):
     from google import genai
-    from google.genai import types
-    client = genai.Client(api_key=api_key)
-
-    prompt = f"""{instructions}
-
-Tiêu đề video: {title}
-Bản ghi (mỗi dòng có mốc thời gian [phút:giây]):
-{transcript}
-
-Hãy bóc các nhận định. Mỗi nhận định gồm:
-- expert: tên chuyên gia phát biểu; nếu không rõ tên thì ghi "(chủ kênh)".
-- region: khu vực kinh tế nói tới, chọn ĐÚNG MỘT: "Việt Nam", "Mỹ", "Châu Âu", "Trung Quốc", "Khác".
-- topic: chọn ĐÚNG MỘT chủ đề trong danh sách sau (chép đúng TÊN, phần trước dấu ngoặc):
-{topic_guide}
-- content: tóm tắt nhận định 2-4 câu, nêu rõ số liệu nếu có.
-- impact: đánh giá tác động tới kinh tế/thị trường, chọn ĐÚNG MỘT: "Tích cực", "Trung lập", "Tiêu cực".
-- timestamp: mốc thời gian dạng mm:ss nơi nói nhận định đó.
-- refers_to: thời điểm/giai đoạn nhận định nói tới (vd "Quý 3/2026"); không rõ để "".
-
-Chỉ trả về JSON: {{"insights": [{{"expert":"...","region":"...","topic":"...","content":"...","impact":"...","timestamp":"mm:ss","refers_to":"..."}}]}}"""
-
-    for attempt in range(max_retries):
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    prompt = build_classify_prompt(items, topics, kw)
+    last_err = None
+    for attempt in range(3):
         try:
-            resp = client.models.generate_content(
-                model=model, contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json"))
-            data = json.loads(resp.text)
-            return {"ok": True, "insights": data.get("insights", [])}
+            resp = client.models.generate_content(model=model, contents=prompt)
+            text = (resp.text or "").strip()
+            text = re.sub(r"^```[a-zA-Z]*", "", text).strip()
+            text = re.sub(r"```$", "", text).strip()
+            f = text.find("{")
+            data = json.loads(text[f: text.rfind("}") + 1])
+            return {str(k): str(v).strip() for k, v in data.items()}
         except Exception as e:
-            msg = str(e); low = msg.lower()
-            if "resource_exhausted" in low or "429" in msg:
-                return {"ok": False, "kind": "quota", "error": msg}
-            if attempt < max_retries - 1:
-                time.sleep(5 * (attempt + 1)); continue
-            return {"ok": False, "kind": "other", "error": msg}
-
-
-def ts_to_seconds(ts):
-    parts = str(ts).split(":")
-    try:
-        parts = [int(p) for p in parts]
-    except ValueError:
-        return 0
-    if len(parts) == 3:
-        return parts[0] * 3600 + parts[1] * 60 + parts[2]
-    if len(parts) == 2:
-        return parts[0] * 60 + parts[1]
-    return parts[0] if parts else 0
-
-
-def build_insight(video, channel_name, ins, topics):
-    topic = ins.get("topic", "")
-    if topic not in topics:
-        topic = topics[-1] if topics else "Khác"
-    impact = ins.get("impact", "Trung lập")
-    if impact not in ("Tích cực", "Trung lập", "Tiêu cực"):
-        impact = "Trung lập"
-    region = ins.get("region", "Việt Nam")
-    if region not in ("Việt Nam", "Mỹ", "Châu Âu", "Trung Quốc", "Khác"):
-        region = "Việt Nam"
-    ts = ins.get("timestamp", "")
-    url_at = video["url"] + (f"?t={ts_to_seconds(ts)}" if ts else "")
-    raw = video["id"] + topic + ins.get("content", "")[:30]
-    return {
-        "id": hashlib.md5(raw.encode("utf-8")).hexdigest(),
-        "video_id": video["id"], "channel": channel_name,
-        "expert": ins.get("expert", "").strip() or channel_name,
-        "topic": topic, "content": ins.get("content", "").strip(),
-        "impact": impact, "region": region,
-        "video_timestamp": ts, "video_url_at": url_at,
-        "video_title": video.get("title", ""), "video_url": video["url"],
-        "posted_at": video.get("published", ""),
-        "refers_to": ins.get("refers_to", "").strip(),
-        "source": "tự động",
-        "created_at": datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M"),
-    }
+            last_err = e
+            msg = str(e)
+            if "RESOURCE_EXHAUSTED" in msg or "429" in msg:
+                print(f"    Hết hạn mức AI (lần {attempt+1}), chờ 30s...")
+                time.sleep(30)
+            else:
+                print(f"    Lỗi AI (lần {attempt+1}): {msg[:150]}")
+                time.sleep(5)
+    raise RuntimeError(f"Gemini thất bại sau 3 lần: {last_err}")
 
 
 def main():
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        print("LỖI: chưa có GEMINI_API_KEY."); return
-
-    force_all = os.environ.get("FORCE_ALL", "").lower() == "true"
-    hour = datetime.now(VN_TZ).hour
-    channels, topics_raw, model, instructions, update_hours = load_config()
-    topic_names = names_of(topics_raw)
-    topic_guide = build_topic_guide(topics_raw)
-
-    if not (force_all or hour in update_hours):
-        print(f"Giờ VN {hour}h không nằm trong lịch {update_hours}. Bỏ qua.")
+    channels, topics, kw, model, update_hours = load_config()
+    if not channels or not topics:
+        print("Thiếu kênh hoặc chủ đề trong config.json — dừng.")
         return
 
-    videos, insights = load_data()
-    print(f"Model: {model} | {len(channels)} kênh | đã có {len(insights)} nhận định")
+    force = os.environ.get("FORCE_ALL", "") == "1"
+    hour = now_vn().hour
+    if update_hours and hour not in update_hours and not force:
+        print(f"Giờ hiện tại {hour}h không nằm trong lịch {update_hours} — bỏ qua.")
+        return
 
-    total_new = 0
-    stop = False
+    data = load_json(DATA_FILE, {})
+    known_videos = set(data.get("videos", {}).keys())
+    sugg = load_json(SUGGEST_FILE, {})
+    items = sugg.get("items", {})
+
+    # Thu thập video mới từ các kênh
+    fresh = []
     for ch in channels:
-        if stop:
-            break
-        ch_name = ch.get("name", ch.get("id"))
-        vids = list_channel_videos(ch.get("url", ""), MAX_VIDEOS_PER_CHANNEL)
-        print(f"== {ch_name}: thấy {len(vids)} video gần đây")
+        name, url = ch.get("name", ""), ch.get("url", "")
+        print(f"Kênh: {name}")
+        vids = list_channel_videos(url)
+        print(f"  RSS trả về {len(vids)} video")
         for v in vids:
-            if v["id"] in videos:
-                continue   # đã xử lý
-            transcript = get_transcript_text(v["id"])
-            if not transcript:
-                print(f"  (bỏ qua, không có transcript) {v['title'][:50]}")
-                videos[v["id"]] = {"channel": ch_name, "title": v["title"],
-                                   "published": v["published"], "url": v["url"],
-                                   "no_transcript": True}
+            if v["id"] in known_videos or v["id"] in items:
                 continue
-            result = analyze(api_key, model, instructions, topic_guide, v["title"], transcript)
-            if not result["ok"]:
-                print(f"  Dừng vì lỗi ({result.get('kind')}): {str(result.get('error'))[:100]}")
-                stop = True
-                break
-            n = 0
-            for ins in result["insights"]:
-                if not ins.get("content"):
-                    continue
-                insights.insert(0, build_insight(v, ch_name, ins, topic_names))
-                n += 1
-            videos[v["id"]] = {"channel": ch_name, "title": v["title"],
-                               "published": v["published"], "url": v["url"]}
-            total_new += n
-            print(f"  + {n} nhận định từ: {v['title'][:50]}")
-            time.sleep(REQUEST_DELAY_SEC)
+            v["channel"] = name
+            fresh.append(v)
+    print(f"Tổng video mới cần phân loại: {len(fresh)}")
 
-    save_data(videos, insights)
-    print(f"Xong. Thêm {total_new} nhận định mới.")
+    if fresh:
+        labels = classify(fresh, topics, kw, model)
+        for v in fresh:
+            topic = labels.get(v["id"], NOT_SUITABLE)
+            if topic not in topics and topic != NOT_SUITABLE:
+                topic = NOT_SUITABLE
+            items[v["id"]] = {"title": v["title"], "channel": v["channel"],
+                              "published": v["published"], "url": v["url"],
+                              "topic": topic, "status": "gợi ý"}
+            print(f"  + [{topic}] {v['title'][:60]}")
+
+    # Dọn: video đã xử lý (đã có trong data.json) thì bỏ khỏi danh sách gợi ý
+    before = len(items)
+    items = {k: v for k, v in items.items() if k not in known_videos}
+    if before != len(items):
+        print(f"Dọn {before - len(items)} gợi ý đã xử lý.")
+
+    sugg = {"updated_at": now_vn().strftime("%Y-%m-%d %H:%M"), "items": items}
+    with open(SUGGEST_FILE, "w", encoding="utf-8") as f:
+        json.dump(sugg, f, ensure_ascii=False, indent=2)
+    print(f"Đã ghi {SUGGEST_FILE}: {len(items)} mục.")
 
 
 if __name__ == "__main__":
