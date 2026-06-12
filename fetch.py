@@ -44,11 +44,11 @@ def load_config():
         except Exception:
             pass
     channels = cfg.get("channels", [])
-    topics = [t["name"] if isinstance(t, dict) else t for t in cfg.get("topics", [])]
+    topics_raw = cfg.get("topics", [])
     model = cfg.get("model") or os.environ.get("GEMINI_MODEL", "") or DEFAULT_MODEL
     prompt = cfg.get("prompt_instructions") or DEFAULT_PROMPT
     update_hours = cfg.get("update_hours", [])
-    return channels, topics, model, prompt, update_hours
+    return channels, topics_raw, model, prompt, update_hours
 
 
 def load_data():
@@ -67,6 +67,21 @@ def save_data(videos, insights):
                "videos": videos, "insights": insights[:MAX_STORE_INSIGHTS]}
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def names_of(topics_raw):
+    return [t["name"] if isinstance(t, dict) else t for t in topics_raw]
+
+
+def build_topic_guide(topics_raw):
+    lines = []
+    for t in topics_raw:
+        if isinstance(t, dict):
+            kw = t.get("keywords", [])
+            lines.append(f"- {t['name']}" + (f" (từ khóa: {', '.join(kw)})" if kw else ""))
+        else:
+            lines.append(f"- {t}")
+    return "\n".join(lines)
 
 
 # ---------------- YouTube: kênh -> video ----------------
@@ -138,7 +153,7 @@ def get_transcript_text(video_id):
 
 # ---------------- AI: transcript -> nhận định ----------------
 
-def analyze(api_key, model, instructions, topics, title, transcript, max_retries=3):
+def analyze(api_key, model, instructions, topic_guide, title, transcript, max_retries=3):
     from google import genai
     from google.genai import types
     client = genai.Client(api_key=api_key)
@@ -151,7 +166,8 @@ Bản ghi (mỗi dòng có mốc thời gian [phút:giây]):
 
 Hãy bóc các nhận định. Mỗi nhận định gồm:
 - expert: tên chuyên gia phát biểu; nếu không rõ tên thì ghi "(chủ kênh)".
-- topic: chọn ĐÚNG MỘT trong: {topics}
+- topic: chọn ĐÚNG MỘT chủ đề trong danh sách sau (chép đúng TÊN, phần trước dấu ngoặc):
+{topic_guide}
 - content: tóm tắt nhận định 2-4 câu, nêu rõ số liệu nếu có.
 - impact: đánh giá tác động tới kinh tế/thị trường, chọn ĐÚNG MỘT: "Tích cực", "Trung lập", "Tiêu cực".
 - timestamp: mốc thời gian dạng mm:ss nơi nói nhận định đó.
@@ -220,7 +236,9 @@ def main():
 
     force_all = os.environ.get("FORCE_ALL", "").lower() == "true"
     hour = datetime.now(VN_TZ).hour
-    channels, topics, model, instructions, update_hours = load_config()
+    channels, topics_raw, model, instructions, update_hours = load_config()
+    topic_names = names_of(topics_raw)
+    topic_guide = build_topic_guide(topics_raw)
 
     if not (force_all or hour in update_hours):
         print(f"Giờ VN {hour}h không nằm trong lịch {update_hours}. Bỏ qua.")
@@ -247,7 +265,7 @@ def main():
                                    "published": v["published"], "url": v["url"],
                                    "no_transcript": True}
                 continue
-            result = analyze(api_key, model, instructions, topics, v["title"], transcript)
+            result = analyze(api_key, model, instructions, topic_guide, v["title"], transcript)
             if not result["ok"]:
                 print(f"  Dừng vì lỗi ({result.get('kind')}): {str(result.get('error'))[:100]}")
                 stop = True
@@ -256,7 +274,7 @@ def main():
             for ins in result["insights"]:
                 if not ins.get("content"):
                     continue
-                insights.insert(0, build_insight(v, ch_name, ins, topics))
+                insights.insert(0, build_insight(v, ch_name, ins, topic_names))
                 n += 1
             videos[v["id"]] = {"channel": ch_name, "title": v["title"],
                                "published": v["published"], "url": v["url"]}
