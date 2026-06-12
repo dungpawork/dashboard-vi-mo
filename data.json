@@ -1,5 +1,5 @@
 {
-  "updated_at": "(vừa sửa tay)",
+  "updated_at": "(vừa cập nhật tay)",
   "videos": {
     "avbDkOzPB30": {
       "channel": "Tài chính & Kinh doanh",
@@ -38,11 +38,97 @@
       "url": "https://youtu.be/MlKa0-kS-Gs"
     },
     "RrgJCheHwd8": {
-      "channel": "Tài chính & Kinh doanh",
+      "channel": "VIF",
       "title": "",
-      "published": "2026-06-08",
+      "published": "2026-05-16",
       "url": "https://youtu.be/RrgJCheHwd8"
     }
   },
-  "insights": []
+  "insights": [
+    {
+      "id": "b4347c36f11860159af8af7d24f5aae6",
+      "video_id": "RrgJCheHwd8",
+      "channel": "VIF",
+      "expert": "Hoàng Việt Anh",
+      "topic": "GDP & Tăng trưởng",
+      "content": "Tăng trưởng GDP của Việt Nam trong quý 1 đạt mức 7.8%, ghi nhận mức cao trong nhiều năm qua. Bên cạnh đó, dòng vốn FDI đăng ký lũy kế tính đến thời điểm hiện tại cũng tăng trưởng mạnh mẽ khoảng 32%, tương đương đạt mức 8 tỷ USD nhờ vào việc hoàn thiện tốt các hành lang cơ chế từ năm trước.",
+      "impact": "Tích cực",
+      "video_timestamp": "00:20:32",
+      "video_url_at": "https://youtu.be/RrgJCheHwd8?t=1232",
+      "video_title": "",
+      "video_url": "https://youtu.be/RrgJCheHwd8",
+      "posted_at": "2026-05-16",
+      "refers_to": "Quý 1/2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "5a0c0a71d8168cf4f2d7c45c5cfdaabc",
+      "video_id": "RrgJCheHwd8",
+      "channel": "VIF",
+      "expert": "Trần Ngọc Báu",
+      "topic": "Lạm phát",
+      "content": "Chỉ số CPI tính theo năm (YoY) tính đến tháng 4 đạt mức 5.5%, hiện đang cao hơn mức mục tiêu 4.5% của Chính phủ khoảng 1%. Tuy nhiên, dự báo áp lực lạm phát đã đạt đỉnh vào tháng 4 và bắt đầu hạ nhiệt từ tháng 5, giúp chỉ số bình quân cả năm vẫn có khả năng đạt được mục tiêu kế hoạch trong khoảng 4.5% đến 5%.",
+      "impact": "Trung lập",
+      "video_timestamp": "00:08:46",
+      "video_url_at": "https://youtu.be/RrgJCheHwd8?t=526",
+      "video_title": "",
+      "video_url": "https://youtu.be/RrgJCheHwd8",
+      "posted_at": "2026-05-16",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "d5920861a058e0a9645814f18f1b236e",
+      "video_id": "RrgJCheHwd8",
+      "channel": "VIF",
+      "expert": "Hoàng Việt Anh",
+      "topic": "Tỷ giá",
+      "content": "Do mặt bằng lãi suất của Mỹ được dự báo tiếp tục duy trì ở mức cao từ 3% đến 3.5% trong vòng 1-2 năm tới, áp lực lên tỷ giá trong nước là hiện hữu. Dự báo tỷ giá USDVND cả năm có thể mất giá quanh mức 3% đến 4%, khó duy trì được mức ổn định dưới 2% đến 3% như giai đoạn trước đây.",
+      "impact": "Tiêu cực",
+      "video_timestamp": "00:31:06",
+      "video_url_at": "https://youtu.be/RrgJCheHwd8?t=1866",
+      "video_title": "",
+      "video_url": "https://youtu.be/RrgJCheHwd8",
+      "posted_at": "2026-05-16",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "96a8ffb6ceef0500626d5e5b9ca402e6",
+      "video_id": "RrgJCheHwd8",
+      "channel": "VIF",
+      "expert": "Hoàng Việt Anh",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Trong 2 năm gần đây, tăng trưởng tín dụng bình quân đạt khoảng 17% trong khi tăng trưởng huy động bình quân chỉ đạt 10% và lũy kế từ đầu năm đến hết tháng 4 chỉ tăng 2.2%. Khoảng cách chênh lệch lớn lên đến 2.6 triệu tỷ đồng giữa giải ngân và huy động vốn dự báo sẽ tiếp tục duy trì áp lực, buộc các ngân hàng phải nâng mục tiêu huy động tiền gửi và đẩy lãi suất huy động lên cao hơn trong ngắn hạn.",
+      "impact": "Tiêu cực",
+      "video_timestamp": "00:45:00",
+      "video_url_at": "https://youtu.be/RrgJCheHwd8?t=2700",
+      "video_title": "",
+      "video_url": "https://youtu.be/RrgJCheHwd8",
+      "posted_at": "2026-05-16",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "b9969678843b6538320a2a7c8ec57ec2",
+      "video_id": "RrgJCheHwd8",
+      "channel": "VIF",
+      "expert": "Nguyễn Tế Huy",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Trong ngắn hạn, áp lực lên mặt bằng lãi suất huy động của hệ thống ngân hàng thương mại được dự báo sẽ vẫn duy trì ở mức cao để phục vụ các mục tiêu tăng trưởng bền vững. Điều này dẫn tới hệ quả trực tiếp là thanh khoản trên các thị trường tài sản như bất động sản và chứng khoán đang có xu hướng bị thu hẹp đáng kể, đồng thời hoạt động phát hành trên thị trường trái phiếu cũng phải chững lại do chi phí vốn thực tế tăng cao.",
+      "impact": "Tiêu cực",
+      "video_timestamp": "00:59:11",
+      "video_url_at": "https://youtu.be/RrgJCheHwd8?t=3551",
+      "video_title": "",
+      "video_url": "https://youtu.be/RrgJCheHwd8",
+      "posted_at": "2026-05-16",
+      "refers_to": "",
+      "source": "thủ công",
+      "created_at": ""
+    }
+  ]
 }
