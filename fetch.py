@@ -65,10 +65,21 @@ def resolve_channel_id(url):
         r = requests.get((url or "").split("?")[0], timeout=20,
                          headers=HEADERS, cookies=COOKIES)
         print(f"    Tải trang kênh: HTTP {r.status_code}, {len(r.text)} ký tự")
-        m = re.search(r'"channelId":"(UC[0-9A-Za-z_-]{22})"', r.text)
-        if m:
-            return m.group(1)
-        print("    KHÔNG thấy channelId trong trang (có thể YouTube chặn máy chủ).")
+        # YouTube đổi cách ghi mã kênh theo thời gian — thử nhiều mẫu
+        patterns = [
+            r'<link rel="canonical" href="https://www\.youtube\.com/channel/(UC[0-9A-Za-z_-]{22})"',
+            r'"externalId":"(UC[0-9A-Za-z_-]{22})"',
+            r'"browseId":"(UC[0-9A-Za-z_-]{22})"',
+            r'"channelId":"(UC[0-9A-Za-z_-]{22})"',
+            r'youtube\.com/channel/(UC[0-9A-Za-z_-]{22})',
+            r'\b(UC[0-9A-Za-z_-]{22})\b',
+        ]
+        for p in patterns:
+            m = re.search(p, r.text)
+            if m:
+                print(f"    Tìm thấy mã kênh: {m.group(1)}")
+                return m.group(1)
+        print("    KHÔNG thấy mã kênh trong trang dù trang tải được.")
     except Exception as e:
         print(f"    Lỗi tải trang kênh: {e}")
     return None
