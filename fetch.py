@@ -92,12 +92,41 @@ def resolve_channel_id(url):
 
 
 def substack_feed_url(url):
-    """Tìm địa chỉ RSS của bản tin Substack từ link cấu hình."""
+    """Tìm địa chỉ RSS của bản tin Substack từ link cấu hình (nhận cả link hồ sơ @tac-gia)."""
     u = (url or "").split("?")[0].rstrip("/")
     if u.endswith("/feed"):
         return u
-    # Link hồ sơ tác giả (substack.com/@ten) -> dò bản tin trong trang
-    if "substack.com/@" in u:
+    # Link hồ sơ tác giả (substack.com/@ten) -> hỏi API công khai của Substack
+    m = re.search(r"substack\.com/@([A-Za-z0-9_.-]+)", u)
+    if m:
+        handle = m.group(1)
+        try:
+            api = f"https://substack.com/api/v1/user/{handle}/public_profile"
+            r = requests.get(api, timeout=20, headers=HEADERS)
+            print(f"    Hỏi API hồ sơ Substack: HTTP {r.status_code}")
+            if r.status_code == 200:
+                prof = r.json()
+                pubs = []
+                if isinstance(prof.get("primaryPublication"), dict):
+                    pubs.append(prof["primaryPublication"])
+                for pu in prof.get("publicationUsers", []) or []:
+                    pub = pu.get("publication") if isinstance(pu, dict) else None
+                    if isinstance(pub, dict):
+                        pubs.append(pub)
+                for pub in pubs:
+                    dom = pub.get("custom_domain") or ""
+                    sub = pub.get("subdomain") or ""
+                    if dom:
+                        base = dom if dom.startswith("http") else "https://" + dom
+                        print(f"    Bản tin (tên miền riêng): {base}")
+                        return base.rstrip("/") + "/feed"
+                    if sub:
+                        print(f"    Bản tin: {sub}.substack.com")
+                        return f"https://{sub}.substack.com/feed"
+                print("    API không có thông tin bản tin chính.")
+        except Exception as e:
+            print(f"    Lỗi hỏi API hồ sơ: {e}")
+        # Dự phòng: đọc trang hồ sơ tìm tên miền bản tin
         try:
             r = requests.get(u, timeout=20, headers=HEADERS)
             print(f"    Tải trang hồ sơ: HTTP {r.status_code}, {len(r.text)} ký tự")
@@ -107,7 +136,7 @@ def substack_feed_url(url):
                 best = max(set(doms), key=doms.count)
                 print(f"    Dò được bản tin: {best}.substack.com")
                 return f"https://{best}.substack.com/feed"
-            print("    KHÔNG dò được bản tin từ trang hồ sơ — hãy dùng link dạng ten.substack.com")
+            print("    KHÔNG dò được bản tin — hãy dùng link dạng ten.substack.com")
         except Exception as e:
             print(f"    Lỗi tải trang hồ sơ: {e}")
         return None
