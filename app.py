@@ -784,8 +784,12 @@ elif page == "✍️ Nhập tay":
         st.info("Chưa có video gợi ý nào. Robot quét theo lịch trong Cấu hình "
                 "(hoặc vào GitHub → Actions → Run workflow để quét ngay).")
     else:
+        def one_video_prompt(url):
+            return (cfg["manual_prompt_template"].replace("{topics}", build_topic_guide(cfg))
+                    .replace("{links}", url))
+
         def sugg_row(vid, v, key_prefix):
-            c = st.columns([0.5, 5, 1.6, 1.3])
+            c = st.columns([0.5, 4.4, 1.5, 0.7, 1.4])
             sel = c[0].checkbox(" ", key=f"{key_prefix}_{vid}", label_visibility="collapsed")
             c[1].markdown(f"**{v.get('title','')}**  \n"
                           f"<span style='font-size:13px;color:{TH()['muted']}'>"
@@ -793,10 +797,19 @@ elif page == "✍️ Nhập tay":
                           unsafe_allow_html=True)
             c[2].markdown(f"<span style='font-size:13px'>🏷️ {v.get('topic','')}</span>",
                           unsafe_allow_html=True)
+            url = v.get("url") or f"https://youtu.be/{vid}"
             with c[3]:
                 if HAS_POPOVER:
                     with st.popover("▶"):
                         components.html(yt_iframe(vid, 0, 210), height=220)
+            with c[4]:
+                if HAS_POPOVER and sel:
+                    with st.popover("📋 Prompt"):
+                        st.caption("Copy khối này (icon góc phải) dán vào Gemini — chỉ 1 video:")
+                        st.code(one_video_prompt(url), language="text")
+                else:
+                    st.button("📋 Prompt", disabled=True, key=f"pb_{key_prefix}_{vid}",
+                              help="Tích chọn video trước để lấy prompt")
             return sel
 
         for vid, v in sorted(pending.items(), key=lambda kv: kv[1].get("published", ""), reverse=True):
@@ -848,6 +861,9 @@ elif page == "✍️ Nhập tay":
 
     st.subheader("② Copy khối này dán vào Gemini")
     if new_links:
+        if len(new_links) > 1:
+            st.warning(f"Bạn đang gộp {len(new_links)} video vào một prompt — chất lượng tóm tắt "
+                       "thường giảm mạnh. Nên dùng nút **📋 Prompt** ở từng dòng để làm từng video.")
         block = (cfg["manual_prompt_template"].replace("{topics}", build_topic_guide(cfg))
                  .replace("{links}", "\n".join(new_links)))
         st.caption(f"Gồm {len(new_links)} video — bấm biểu tượng copy ở góc khối:")
