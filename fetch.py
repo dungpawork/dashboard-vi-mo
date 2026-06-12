@@ -50,26 +50,47 @@ def load_config():
             cfg.get("model", "gemini-2.5-flash-lite"), cfg.get("update_hours", []))
 
 
+HEADERS = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                          "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"),
+           "Accept-Language": "en-US,en;q=0.9,vi;q=0.8"}
+COOKIES = {"CONSENT": "YES+1", "SOCS": "CAI"}
+
+
 def resolve_channel_id(url):
     m = re.search(r"/channel/(UC[0-9A-Za-z_-]{22})", url or "")
     if m:
+        print("    Mã kênh có sẵn trong link.")
         return m.group(1)
     try:
         r = requests.get((url or "").split("?")[0], timeout=20,
-                         headers={"User-Agent": "Mozilla/5.0"})
+                         headers=HEADERS, cookies=COOKIES)
+        print(f"    Tải trang kênh: HTTP {r.status_code}, {len(r.text)} ký tự")
         m = re.search(r'"channelId":"(UC[0-9A-Za-z_-]{22})"', r.text)
         if m:
             return m.group(1)
+        print("    KHÔNG thấy channelId trong trang (có thể YouTube chặn máy chủ).")
     except Exception as e:
-        print(f"    Lỗi tìm channel id: {e}")
+        print(f"    Lỗi tải trang kênh: {e}")
     return None
 
 
 def list_channel_videos(url, limit=MAX_PER_CHANNEL):
     cid = resolve_channel_id(url)
     if not cid:
+        print("    => Bỏ qua kênh (không có mã kênh). Mẹo: dùng link dạng "
+              "youtube.com/channel/UC... trong Cấu hình để khỏi cần bước này.")
         return []
-    feed = feedparser.parse("https://www.youtube.com/feeds/videos.xml?channel_id=" + cid)
+    feed_url = "https://www.youtube.com/feeds/videos.xml?channel_id=" + cid
+    try:
+        r = requests.get(feed_url, timeout=20, headers=HEADERS, cookies=COOKIES)
+        print(f"    Tải RSS: HTTP {r.status_code}, {len(r.text)} ký tự")
+        if r.status_code != 200:
+            print("    => RSS bị từ chối (khả năng YouTube chặn máy chủ GitHub).")
+            return []
+        feed = feedparser.parse(r.text)
+    except Exception as e:
+        print(f"    Lỗi tải RSS: {e}")
+        return []
     out = []
     for e in feed.entries[:limit]:
         vid = getattr(e, "yt_videoid", None) or e.get("id", "").split(":")[-1]
