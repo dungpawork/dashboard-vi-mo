@@ -224,6 +224,16 @@ def impact_badge(v):
 
 
 REGION_FLAG = {"Việt Nam": "🇻🇳", "Mỹ": "🇺🇸", "Châu Âu": "🇪🇺", "Trung Quốc": "🇨🇳", "Khác": "🌐"}
+REGION_CODE = {"Việt Nam": "vn", "Mỹ": "us", "Châu Âu": "eu", "Trung Quốc": "cn"}
+
+
+def region_flag_html(region):
+    """Trả về ảnh cờ + tên khu vực (ảnh hiện được cả trên Windows, khác emoji cờ)."""
+    code = REGION_CODE.get(region)
+    if code:
+        return (f"<img src='https://flagcdn.com/20x15/{code}.png' width='18' "
+                f"style='vertical-align:middle;border-radius:2px;margin-right:3px'>{region}")
+    return f"🌐 {region}"
 
 
 def impact_dot_html(v):
@@ -438,7 +448,7 @@ def render_insight(a, ctx=""):
     st.write(a.get("content", ""))
     impact = a.get("impact") or "Trung lập"
     region = a.get("region") or "Việt Nam"
-    parts = [impact_dot_html(impact), f"{REGION_FLAG.get(region, '🌐')} {region}"]
+    parts = [impact_dot_html(impact), region_flag_html(region)]
     if a.get("refers_to"):
         parts.append(f"🗓️ {a['refers_to']}")
     if a.get("posted_at"):
