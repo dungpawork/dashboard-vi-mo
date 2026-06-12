@@ -28,7 +28,7 @@
     "YvKWA7CTmMQ": {
       "channel": "Tài chính & Kinh doanh",
       "title": "",
-      "published": "2026-06-05",
+      "published": "2026-04-22",
       "url": "https://youtu.be/YvKWA7CTmMQ"
     },
     "MlKa0-kS-Gs": {
@@ -45,6 +45,57 @@
     }
   },
   "insights": [
+    {
+      "id": "146750c0f0922a3f9526adde735dabdc",
+      "video_id": "YvKWA7CTmMQ",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Long Phan",
+      "topic": "Tỷ giá",
+      "content": "Cuộc chiến tranh giữa Mỹ và Iran bùng nổ dẫn tới nhu cầu thanh khoản đồng USD lớn trên toàn cầu. Một số ngân hàng trung ương đã phải chấm dứt chuỗi mua ròng kéo dài nhiều năm để chuyển sang bán vàng nhằm bổ sung thanh khoản ngoại tệ và bảo vệ dự trữ ngoại hối.",
+      "impact": "Tiêu cực",
+      "video_timestamp": "06:30",
+      "video_url_at": "https://youtu.be/YvKWA7CTmMQ?t=390",
+      "video_title": "",
+      "video_url": "https://youtu.be/YvKWA7CTmMQ",
+      "posted_at": "2026-04-22",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "20f7a9a8170c1a2948dfff597b79c339",
+      "video_id": "YvKWA7CTmMQ",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Lạm phát",
+      "content": "Xung đột địa chính trị tại khu vực Trung Đông đang gây ra nguy cơ đứt gãy chuỗi cung ứng hàng hải toàn cầu và làm gia tăng chi phí logistics. Điều này trực tiếp gây áp lực tăng lên chỉ số lạm phát lõi và CPI của nhiều quốc gia trong nửa cuối năm 2026.",
+      "impact": "Tiêu cực",
+      "video_timestamp": "15:45",
+      "video_url_at": "https://youtu.be/YvKWA7CTmMQ?t=945",
+      "video_title": "",
+      "video_url": "https://youtu.be/YvKWA7CTmMQ",
+      "posted_at": "2026-04-22",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
+    {
+      "id": "fa6f65e0123c4da497b61437ff3be2f2",
+      "video_id": "YvKWA7CTmMQ",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Long Phan",
+      "topic": "GDP & Tăng trưởng",
+      "content": "Kinh tế thế giới dự báo duy trì tốc độ tăng trưởng thấp do các thách thức địa chính trị, trong khi Việt Nam đặt mục tiêu tăng trưởng GDP năm 2026 ở mức rất cao, gấp 3 đến 4 lần thế giới. Sự khác biệt này đòi hỏi Chính phủ và các doanh nghiệp trong nước phải gia tăng tính kiên cường trước các cú sốc bên ngoài.",
+      "impact": "Trung lập",
+      "video_timestamp": "28:10",
+      "video_url_at": "https://youtu.be/YvKWA7CTmMQ?t=1690",
+      "video_title": "",
+      "video_url": "https://youtu.be/YvKWA7CTmMQ",
+      "posted_at": "2026-04-22",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": ""
+    },
     {
       "id": "c96fcec46d717feba2e29e09efc2f36a",
       "video_id": "J54qTc-3yRQ",
