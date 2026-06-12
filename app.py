@@ -2,7 +2,7 @@
 """
 DASHBOARD NHẬN ĐỊNH CHUYÊN GIA (YouTube)
 Xem (góc trên trái):   📊 Nhận định, 🧑‍💼 Chuyên gia
-Công cụ (góc dưới, cần mật khẩu): ✍️ Nhập tay, 🗂️ Quản lý nguồn, 👤 Quản lý chuyên gia, ⚙️ Cấu hình
+Công cụ (góc dưới, cần mật khẩu): ✍️ UPDATE NHẬN ĐỊNH, 🗂️ Quản lý nguồn, 👤 Quản lý chuyên gia, ⚙️ Cấu hình
 Secrets: ADMIN_PASSWORD, GH_TOKEN, GH_REPO ; Thư viện: streamlit, requests, feedparser, Pillow
 """
 
