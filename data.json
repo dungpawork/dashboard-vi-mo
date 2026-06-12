@@ -78,9 +78,51 @@
       "title": "Loạt các chính sách chuẩn bị được ban hành và ảnh hưởng đến nền kinh tế và thị trường chứng khoán",
       "published": "2026-04-19",
       "url": "https://youtu.be/v1PmqldmOHs"
+    },
+    "p72f19821493fedc": {
+      "channel": "Trương Đắc Nguyên",
+      "title": "Đồ thị này sẽ làm lung lay sự lạc quan của nhiều người cho vấn đề thâm hụt thương mại",
+      "published": "2026-06-12",
+      "url": "https://substack.com/home/post/p-201687028"
     }
   },
   "insights": [
+    {
+      "id": "13a076bf9f0817b89760d902b8d3edd9",
+      "video_id": "p72f19821493fedc",
+      "channel": "Trương Đắc Nguyên",
+      "expert": "Trương Đắc Nguyên",
+      "topic": "Tỷ giá",
+      "content": "Cán cân thương mại của Việt Nam ghi nhận mức thâm hụt nghiêm trọng lên tới 13,8 tỷ USD chỉ sau 5 tháng đầu năm 2026. Đây là con số gây sốc và là dấu hiệu cho thấy áp lực lên nguồn ngoại tệ và tỷ giá đang gia tăng rõ rệt.",
+      "impact": "Tiêu cực",
+      "region": "Việt Nam",
+      "video_timestamp": "",
+      "video_url_at": "https://substack.com/home/post/p-201687028",
+      "video_title": "Đồ thị này sẽ làm lung lay sự lạc quan của nhiều người cho vấn đề thâm hụt thương mại",
+      "video_url": "https://substack.com/home/post/p-201687028",
+      "posted_at": "2026-06-12",
+      "refers_to": "Tháng 5/2026",
+      "source": "thủ công",
+      "created_at": "2026-06-12 21:41"
+    },
+    {
+      "id": "c42428acb7fa7eba15c5044d1b77148c",
+      "video_id": "p72f19821493fedc",
+      "channel": "Trương Đắc Nguyên",
+      "expert": "Trương Đắc Nguyên",
+      "topic": "Tỷ giá",
+      "content": "Xu hướng thâm hụt cán cân thương mại của nhóm hàng điện tử, máy tính và máy móc thiết bị có thể kéo dài và khó sớm đảo chiều sang thặng dư như kỳ vọng của nhiều người trước đây. Thực tế từ tháng 7 năm 2024 đến nay, thặng dư lũy kế 12 tháng của nhóm hàng chủ lực này đã suy giảm liên tục suốt 23 tháng và chính thức quay lại trạng thái thâm hụt sau 10 năm.",
+      "impact": "Tiêu cực",
+      "region": "Việt Nam",
+      "video_timestamp": "",
+      "video_url_at": "https://substack.com/home/post/p-201687028",
+      "video_title": "Đồ thị này sẽ làm lung lay sự lạc quan của nhiều người cho vấn đề thâm hụt thương mại",
+      "video_url": "https://substack.com/home/post/p-201687028",
+      "posted_at": "2026-06-12",
+      "refers_to": "Năm 2026",
+      "source": "thủ công",
+      "created_at": "2026-06-12 21:41"
+    },
     {
       "id": "3b650d9f5af3ab43abb9f8032fcfb026",
       "video_id": "v1PmqldmOHs",
