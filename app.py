@@ -29,6 +29,24 @@ GEMINI_MODELS = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.5-f
                  "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
 IMPACTS = ["Tích cực", "Trung lập", "Tiêu cực"]
 REGIONS = ["Việt Nam", "Mỹ", "Châu Âu", "Trung Quốc", "Khác"]
+
+THEMES = {
+    "light": {"bg": "#faf8f4", "card": "#ffffff", "border": "#ece6db", "text": "#2b2b2b",
+              "muted": "#9a9286", "heading": "#16243a", "hfont": "'Lora',serif",
+              "sidebar": "#f3efe8", "neu": "#cbd5e1", "pos": "#15803d", "neg": "#dc2626",
+              "shadow": "0 4px 14px rgba(40,30,10,.05)", "radius": "12px"},
+    "dark": {"bg": "#0e141b", "card": "#131b24", "border": "#202c3a", "text": "#cdd6e3",
+             "muted": "#7d8aa0", "heading": "#ffffff", "hfont": "'Inter',sans-serif",
+             "sidebar": "#0b1118", "neu": "#3a4759", "pos": "#34d399", "neg": "#f87171",
+             "shadow": "none", "radius": "10px"},
+}
+
+
+def TH():
+    try:
+        return THEMES[st.session_state.get("ui_theme", "light")]
+    except Exception:
+        return THEMES["light"]
 DEFAULT_AUTO_PROMPT = ("Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) của video "
                        "và rút ra các NHẬN ĐỊNH kinh tế, tóm tắt 2-4 câu, đánh giá tác động "
                        "(Tích cực/Trung lập/Tiêu cực) và khu vực (Việt Nam/Mỹ/Châu Âu/Trung Quốc/Khác). "
@@ -259,26 +277,64 @@ def region_flag_html(region):
 
 
 def impact_dot_html(v):
-    color = {"Tích cực": "#2f9e44", "Tiêu cực": "#e03131"}.get(v, "#868e96")
+    t = TH()
+    color = {"Tích cực": t["pos"], "Tiêu cực": t["neg"]}.get(v, t["muted"])
     return f"<span style='color:{color}'>● {v}</span>"
 
 
-def impact_summary_html(items):
+def impact_counts(items):
     n = len(items)
     if n == 0:
-        return "<div style='text-align:right;color:#bbb;font-size:12px;margin-top:8px'>—</div>"
+        return 0, 0, 0
     pos = sum(1 for a in items if (a.get("impact") or "Trung lập") == "Tích cực")
     neg = sum(1 for a in items if (a.get("impact") or "Trung lập") == "Tiêu cực")
     pp, pn = round(pos * 100 / n), round(neg * 100 / n)
-    pu = 100 - pp - pn
+    return pp, 100 - pp - pn, pn
+
+
+def impact_summary_html(items):
+    t = TH()
+    if not items:
+        return f"<div style='text-align:right;color:{t['muted']};font-size:12px;margin-top:8px'>—</div>"
+    pp, pu, pn = impact_counts(items)
     return (
         "<div style='margin-top:6px'>"
-        "<div style='display:flex;height:8px;border-radius:4px;overflow:hidden;border:1px solid #eee'>"
-        f"<div style='width:{pp}%;background:#2f9e44'></div>"
-        f"<div style='width:{pu}%;background:#ced4da'></div>"
-        f"<div style='width:{pn}%;background:#e03131'></div></div>"
-        f"<div style='text-align:right;font-size:11px;color:#555;margin-top:2px'>"
+        f"<div style='display:flex;height:8px;border-radius:4px;overflow:hidden'>"
+        f"<div style='width:{pp}%;background:{t['pos']}'></div>"
+        f"<div style='width:{pu}%;background:{t['neu']}'></div>"
+        f"<div style='width:{pn}%;background:{t['neg']}'></div></div>"
+        f"<div style='text-align:right;font-size:11px;color:{t['muted']};margin-top:2px'>"
         f"🟢 {pp}% · ⚪ {pu}% · 🔴 {pn}%</div></div>")
+
+
+def render_topic_summary(shown):
+    """Dải 'Tổng hợp Nhận định Chuyên gia' dạng thanh phân kỳ cho 7 chủ đề."""
+    t = TH()
+    rows = []
+    for name in TOPICS:
+        items = [a for a in shown if a.get("topic") == name]
+        pp, _, pn = impact_counts(items)
+        rows.append(
+            "<div style='display:grid;grid-template-columns:170px 34px 1fr 34px;gap:8px;"
+            "align-items:center;padding:6px 0'>"
+            f"<div style='font-size:13px;color:{t['text']}'>{name}</div>"
+            f"<div style='font-family:monospace;font-size:11px;color:{t['neg']};text-align:right'>{pn}%</div>"
+            "<div style='display:flex;align-items:center;height:14px;position:relative'>"
+            f"<div style='position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:{t['border']}'></div>"
+            f"<div style='flex:1;display:flex;justify-content:flex-end'><div style='height:10px;border-radius:2px;width:{pn}%;background:{t['neg']}'></div></div>"
+            f"<div style='flex:1'><div style='height:10px;border-radius:2px;width:{pp}%;background:{t['pos']}'></div></div>"
+            "</div>"
+            f"<div style='font-family:monospace;font-size:11px;color:{t['pos']}'>{pp}%</div>"
+            "</div>")
+    return (
+        f"<div style='background:{t['card']};border:1px solid {t['border']};border-radius:{t['radius']};"
+        f"padding:14px 18px;box-shadow:{t['shadow']};margin-bottom:18px'>"
+        f"<div style='font-family:{t['hfont']};font-size:18px;font-weight:600;color:{t['heading']};"
+        "margin-bottom:6px'>Tổng hợp Nhận định Chuyên gia</div>"
+        f"<div style='font-size:11px;color:{t['muted']};margin-bottom:8px'>"
+        f"<span style='color:{t['neg']}'>◀ tiêu cực&nbsp;%</span> &nbsp;·&nbsp; "
+        f"<span style='color:{t['pos']}'>tích cực&nbsp;% ▶</span></div>"
+        + "".join(rows) + "</div>")
 
 
 def avatar_img(name, size=36):
@@ -467,8 +523,19 @@ if HAS_DIALOG:
             height=420)
 
 
-def render_insight(a, ctx=""):
-    st.write(a.get("content", ""))
+def render_insight(a, ctx="", show_byline=True):
+    t = TH()
+    if show_byline:
+        expert = a.get("expert", "(không rõ)")
+        ttl = expert_title(expert)
+        st.markdown(
+            f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>"
+            f"{avatar_img(expert, 30)}"
+            f"<span><span style='font-weight:600;color:{t['heading']}'>{expert}</span>"
+            + (f" <span style='color:{t['muted']};font-size:12px'>· {ttl}</span>" if ttl else "")
+            + "</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='color:{t['text']};font-size:14px;line-height:1.6'>{a.get('content','')}</div>",
+                unsafe_allow_html=True)
     impact = a.get("impact") or "Trung lập"
     region = a.get("region") or "Việt Nam"
     parts = [impact_dot_html(impact), region_flag_html(region)]
@@ -477,7 +544,7 @@ def render_insight(a, ctx=""):
     if a.get("posted_at"):
         parts.append(f"📅 {a['posted_at'][:10]}")
     parts.append("🤖" if a.get("source") == "tự động" else "✍️")
-    meta = "<span style='font-size:13px;color:#666'>" + "  ·  ".join(parts) + "</span>"
+    meta = f"<span style='font-size:13px;color:{t['muted']}'>" + "  ·  ".join(parts) + "</span>"
 
     ts = a.get("video_timestamp")
     vid, sec = a.get("video_id", ""), ts_to_seconds(ts)
@@ -497,6 +564,21 @@ def render_insight(a, ctx=""):
         st.markdown(meta, unsafe_allow_html=True)
 
 
+def inject_theme_css():
+    t = TH()
+    st.markdown(f"""<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+    .stApp {{ background:{t['bg']}; color:{t['text']}; font-family:'Inter',system-ui,sans-serif; }}
+    h1,h2,h3,h4 {{ color:{t['heading']} !important; font-family:{t['hfont']}; }}
+    section[data-testid="stSidebar"] {{ background:{t['sidebar']}; }}
+    [data-testid="stVerticalBlockBorderWrapper"] {{
+        background:{t['card']}; border:1px solid {t['border']} !important;
+        border-radius:{t['radius']}; box-shadow:{t['shadow']}; }}
+    [data-testid="stExpander"] {{ border-color:{t['border']} !important; }}
+    #MainMenu, footer {{ visibility:hidden; }}
+    </style>""", unsafe_allow_html=True)
+
+
 # ==================== Điều hướng ====================
 
 NAV_TOP = ["📊 Nhận định", "🧑‍💼 Chuyên gia"]
@@ -504,14 +586,19 @@ NAV_TOOLS = ["✍️ Nhập tay", "🗂️ Quản lý nguồn", "👤 Quản lý
 if "page" not in st.session_state:
     st.session_state["page"] = NAV_TOP[0]
 cur_page = st.session_state["page"]
+inject_theme_css()
 with st.sidebar:
+    _dark = st.session_state.get("ui_theme", "light") == "dark"
+    if st.button("☀️ Chế độ Sáng" if _dark else "🌙 Chế độ Tối", use_container_width=True, key="theme_btn"):
+        st.session_state["ui_theme"] = "light" if _dark else "dark"
+        st.rerun()
     st.markdown("### Xem")
     for lbl in NAV_TOP:
         if st.button(lbl, use_container_width=True,
                      type="primary" if lbl == cur_page else "secondary", key="nv_" + lbl):
             st.session_state["page"] = lbl
             st.rerun()
-    st.markdown("<div style='height:22vh'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:18vh'></div>", unsafe_allow_html=True)
     st.divider()
     st.caption("🔒 Công cụ")
     for lbl in NAV_TOOLS:
@@ -551,11 +638,13 @@ if page == "📊 Nhận định":
     else:
         c1, c2, c3, c4 = st.columns(4)
         posted_choice = c1.selectbox("Ngày đăng bài", ["3 tháng gần nhất", "6 tháng gần nhất", "Tất cả"])
-        refers_choice = c2.selectbox("Thời điểm nói tới", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
+        refers_choice = c2.selectbox("Thời điểm nhận định", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
         region_filter = c3.selectbox("Khu vực", ["Tất cả"] + REGIONS, index=1)
         impact_filter = c4.selectbox("Đánh giá", ["Tất cả"] + IMPACTS)
         keep = make_keep(posted_choice, refers_choice, region_filter, impact_filter)
         shown = [a for a in insights if keep(a)]
+
+        st.markdown(render_topic_summary(shown), unsafe_allow_html=True)
 
         rows = {}
         for order, t in enumerate(cfg["topics"]):
@@ -570,18 +659,10 @@ if page == "📊 Nhận định":
                 tcol.markdown(f"#### {name}")
                 scol.markdown(impact_summary_html(items), unsafe_allow_html=True)
                 st.caption(f"{len(items)} nhận định")
-                by_expert = {}
-                for a in items:
-                    by_expert.setdefault(a.get("expert", "(không rõ)"), []).append(a)
                 if not items:
                     st.caption("_Chưa có nhận định._")
-                for expert, arr in by_expert.items():
-                    ttl = expert_title(expert)
-                    st.markdown(f"{avatar_img(expert, 28)} **{expert}**"
-                                + (f" · <span style='color:#888;font-size:12px'>{ttl}</span>" if ttl else ""),
-                                unsafe_allow_html=True)
-                    for a in arr:
-                        render_insight(a, ctx="nd")
+                for a in items:
+                    render_insight(a, ctx="nd", show_byline=True)
                     st.divider()
 
         for r in sorted(rows.keys()):
@@ -601,7 +682,7 @@ elif page == "🧑‍💼 Chuyên gia":
     else:
         c1, c2, c3 = st.columns(3)
         posted_choice = c1.selectbox("Ngày đăng bài", ["3 tháng gần nhất", "6 tháng gần nhất", "Tất cả"])
-        refers_choice = c2.selectbox("Thời điểm nói tới", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
+        refers_choice = c2.selectbox("Thời điểm nhận định", ["3 tháng tiếp theo", "6 tháng tiếp theo", "Tất cả"])
         region_filter = c3.selectbox("Khu vực", ["Tất cả"] + REGIONS, index=1)
         keep = make_keep(posted_choice, refers_choice, region_filter)
         shown = [a for a in insights if keep(a)]
@@ -632,7 +713,7 @@ elif page == "🧑‍💼 Chuyên gia":
                             if not titems:
                                 st.caption("—")
                             for a in titems:
-                                render_insight(a, ctx="cg")
+                                render_insight(a, ctx="cg", show_byline=False)
 
 
 # ==================== ✍️ NHẬP TAY ====================
