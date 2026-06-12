@@ -193,6 +193,26 @@ def extract_video_id(link):
     return m.group(1) if m else None
 
 
+def post_id(url):
+    u = (url or "").split("?")[0].rstrip("/")
+    return "p" + hashlib.md5(u.encode("utf-8")).hexdigest()[:15]
+
+
+def content_key(link):
+    """Trả về (key, url_chuẩn, là_video). Hỗ trợ video YouTube và bài viết."""
+    vid = extract_video_id(link)
+    if vid:
+        return vid, f"https://youtu.be/{vid}", True
+    l = (link or "").strip()
+    if l.startswith("http"):
+        return post_id(l), l.split("?")[0].rstrip("/"), False
+    return None, None, False
+
+
+def is_youtube_id(key):
+    return bool(re.fullmatch(r"[0-9A-Za-z_-]{11}", key or ""))
+
+
 def ts_to_seconds(ts):
     parts = str(ts).split(":")
     try:
@@ -392,15 +412,15 @@ def build_manual_insights(parsed, topics):
     now_str = datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M")
     new_videos, new_insights, skipped = {}, [], 0
     for item in parsed:
-        vid = extract_video_id(item.get("video", "") or item.get("link", "") or item.get("url", ""))
-        if not vid:
+        link = item.get("video", "") or item.get("link", "") or item.get("url", "")
+        key, url, is_video = content_key(link)
+        if not key:
             skipped += 1
             continue
-        url = f"https://youtu.be/{vid}"
         channel = (item.get("channel") or "(không rõ kênh)").strip()
         title = (item.get("title") or "").strip()
         posted = (item.get("posted_at") or item.get("published") or "").strip()
-        new_videos[vid] = {"channel": channel, "title": title, "published": posted, "url": url}
+        new_videos[key] = {"channel": channel, "title": title, "published": posted, "url": url}
         for ins in item.get("insights", []):
             if not ins.get("content"):
                 continue
@@ -413,15 +433,15 @@ def build_manual_insights(parsed, topics):
             region = ins.get("region", "Việt Nam")
             if region not in REGIONS:
                 region = "Việt Nam"
-            ts = ins.get("timestamp", "")
-            raw = vid + topic + ins.get("content", "")[:30]
+            ts = ins.get("timestamp", "") if is_video else ""
+            raw = key + topic + ins.get("content", "")[:30]
             new_insights.append({
                 "id": hashlib.md5(raw.encode("utf-8")).hexdigest(),
-                "video_id": vid, "channel": channel,
+                "video_id": key, "channel": channel,
                 "expert": (ins.get("expert", "") or channel).strip(),
                 "topic": topic, "content": ins.get("content", "").strip(),
                 "impact": impact, "region": region, "video_timestamp": ts,
-                "video_url_at": url + (f"?t={ts_to_seconds(ts)}" if ts else ""),
+                "video_url_at": url + (f"?t={ts_to_seconds(ts)}" if (ts and is_video) else ""),
                 "video_title": title, "video_url": url,
                 "posted_at": posted, "refers_to": ins.get("refers_to", "").strip(),
                 "source": "thủ công", "created_at": now_str})
@@ -544,6 +564,9 @@ def render_insight(a, ctx="", show_byline=True):
         parts.append(f"🗓️ {a['refers_to']}")
     if a.get("posted_at"):
         parts.append(f"📅 {a['posted_at'][:10]}")
+    link = a.get("video_url", "")
+    if not a.get("video_timestamp") and link and not is_youtube_id(a.get("video_id", "")):
+        parts.append(f"<a href='{link}' target='_blank' style='color:{t['muted']}'>📰 bài viết</a>")
     meta = f"<span style='font-size:14px;color:{t['muted']}'>" + "  ·  ".join(parts) + "</span>"
 
     ts = a.get("video_timestamp")
@@ -814,18 +837,21 @@ elif page == "✍️ Nhập tay":
         def sugg_row(vid, v, key_prefix):
             c = st.columns([0.4, 3.8, 1.3, 2.0, 0.6, 1.1])
             sel = c[0].checkbox(" ", key=f"{key_prefix}_{vid}", label_visibility="collapsed")
-            c[1].markdown(f"**{v.get('title','')}**  \n"
+            icon = "📰" if v.get("type") == "post" else "📺"
+            c[1].markdown(f"{icon} **{v.get('title','')}**  \n"
                           f"<span style='font-size:13px;color:{TH()['muted']}'>"
                           f"{v.get('channel','')} · 📅 {v.get('published','')}</span>",
                           unsafe_allow_html=True)
             c[2].markdown(f"<span style='font-size:13px'>🏷️ {v.get('topic','')}</span>",
                           unsafe_allow_html=True)
-            url = v.get("url") or f"https://youtu.be/{vid}"
+            url = v.get("url") or (f"https://youtu.be/{vid}" if is_youtube_id(vid) else "")
             c[3].code(url, language="text")
             with c[4]:
-                if HAS_POPOVER:
+                if HAS_POPOVER and is_youtube_id(vid):
                     with st.popover("▶"):
                         components.html(yt_iframe(vid, 0, 210), height=220)
+                elif v.get("type") == "post":
+                    st.markdown(f"[📰]({url})", help="Mở bài viết")
             with c[5]:
                 if HAS_POPOVER and sel:
                     with st.popover("📋 Prompt"):
@@ -875,23 +901,23 @@ elif page == "✍️ Nhập tay":
             _mark_skip(unticked, "Không còn video nào chưa tích.")
 
     # ---- ① b) Dán link bổ sung ----
-    st.subheader("①b. Hoặc dán link video (mỗi dòng một link)")
-    link_text = st.text_area("Link video", height=90,
-                             placeholder="https://youtu.be/...\nhttps://www.youtube.com/watch?v=...")
-    reprocess = st.checkbox("🔁 Làm lại cả video đã xử lý trước đó")
+    st.subheader("①b. Hoặc dán link (video YouTube / bài viết, mỗi dòng một link)")
+    link_text = st.text_area("Link", height=90,
+                             placeholder="https://youtu.be/...\nhttps://ten.substack.com/p/...")
+    reprocess = st.checkbox("🔁 Làm lại cả nội dung đã xử lý trước đó")
     raw_links = picked_urls + [l.strip() for l in link_text.splitlines() if l.strip()]
     new_links, done_links, bad = [], [], 0
     for l in raw_links:
-        vid = extract_video_id(l)
-        if not vid:
+        key, _, _ = content_key(l)
+        if not key:
             bad += 1
             continue
-        (done_links if (vid in videos and not reprocess) else new_links).append(l)
+        (done_links if (key in videos and not reprocess) else new_links).append(l)
     new_links = list(dict.fromkeys(new_links))
     if done_links:
-        st.caption(f"↩️ Bỏ qua {len(done_links)} video đã xử lý (tích '🔁 Làm lại' nếu muốn).")
+        st.caption(f"↩️ Bỏ qua {len(done_links)} nội dung đã xử lý (tích '🔁 Làm lại' nếu muốn).")
     if bad:
-        st.caption(f"⚠️ {bad} dòng không phải link YouTube.")
+        st.caption(f"⚠️ {bad} dòng không phải đường link hợp lệ.")
 
     st.subheader("② Copy khối này dán vào Gemini")
     if new_links:
@@ -1003,11 +1029,11 @@ elif page == "🗂️ Quản lý nguồn":
             row[2].write(date_of(vid, a0))
             row[3].write(len(a0))
             with row[4]:
-                if HAS_POPOVER:
+                if HAS_POPOVER and is_youtube_id(vid):
                     with st.popover("▶ Xem"):
                         components.html(yt_iframe(vid, 0, 210), height=220)
                 else:
-                    st.markdown(f"[▶ Mở]({vurl_of(vid, a0)})")
+                    st.markdown(f"[📰 Mở]({vurl_of(vid, a0)})")
 
         st.subheader("Sửa / xóa từng nguồn")
         editors, ch_edit, ti_edit, del_src, orig = {}, {}, {}, {}, {}
@@ -1024,7 +1050,7 @@ elif page == "🗂️ Quản lý nguồn":
                     st.caption("Link video gốc (bấm icon để copy):")
                     st.code(vurl, language="text")
                 with rc:
-                    if HAS_POPOVER:
+                    if HAS_POPOVER and is_youtube_id(vid):
                         with st.popover("▶ Xem nhanh"):
                             components.html(yt_iframe(vid, 0, 210), height=220)
                 ti_edit[vid] = st.text_input("Tiêu đề video", value=title, key="ti_" + vid)
@@ -1174,6 +1200,15 @@ else:
                              column_config={"Tên kênh": st.column_config.TextColumn(width="medium"),
                                             "Link kênh": st.column_config.TextColumn(width="large")})
 
+    st.subheader("Bản tin Substack (nguồn)")
+    st.caption("Dùng link bản tin dạng `ten.substack.com` (link hồ sơ `substack.com/@ten` robot sẽ tự dò "
+               "nhưng kém chắc chắn hơn).")
+    sb_rows = [{"Tên bản tin": s.get("name", ""), "Link bản tin": s.get("url", "")}
+               for s in cfg.get("substacks", [])] or [{"Tên bản tin": "", "Link bản tin": ""}]
+    sb_edit = st.data_editor(sb_rows, num_rows="dynamic", use_container_width=True, key="sb_editor",
+                             column_config={"Tên bản tin": st.column_config.TextColumn(width="medium"),
+                                            "Link bản tin": st.column_config.TextColumn(width="large")})
+
     st.subheader("Chủ đề (Hàng = bố cục, Từ khóa = gợi ý cho AI)")
     st.caption("Từ khóa ngăn nhau bằng dấu phẩy.")
     tp_rows = [{"Tên chủ đề": (t["name"] if isinstance(t, dict) else t),
@@ -1196,15 +1231,18 @@ else:
         channels = [{"id": "ch_" + hashlib.md5((r.get("Link kênh") or "").encode()).hexdigest()[:6],
                      "name": (r.get("Tên kênh") or "").strip(), "url": (r.get("Link kênh") or "").strip()}
                     for r in ch_edit if (r.get("Tên kênh") or "").strip() and (r.get("Link kênh") or "").strip()]
+        substacks = [{"name": (r.get("Tên bản tin") or "").strip(), "url": (r.get("Link bản tin") or "").strip()}
+                     for r in sb_edit
+                     if (r.get("Tên bản tin") or "").strip() and (r.get("Link bản tin") or "").strip()]
         topics = [{"name": (r.get("Tên chủ đề") or "").strip(), "row": int(r.get("Hàng", 1) or 1),
                    "keywords": [k.strip() for k in (r.get("Từ khóa") or "").split(",") if k.strip()]}
                   for r in tp_edit if (r.get("Tên chủ đề") or "").strip()]
-        if not channels or not topics:
-            st.error("Cần ít nhất một kênh và một chủ đề.")
+        if (not channels and not substacks) or not topics:
+            st.error("Cần ít nhất một nguồn (kênh YouTube hoặc Substack) và một chủ đề.")
         else:
             new_cfg = {"model": st.session_state.get("model_select", DEFAULT_MODEL),
                        "update_hours": sorted(st.session_state.get("hours_select", [])),
-                       "channels": channels, "topics": topics,
+                       "channels": channels, "substacks": substacks, "topics": topics,
                        "prompt_instructions": auto_prompt.strip() or DEFAULT_AUTO_PROMPT,
                        "manual_prompt_template": manual_tpl.strip() or DEFAULT_MANUAL_TEMPLATE}
             ok, msg = commit_json(CONFIG_FILE, new_cfg, "Cap nhat cau hinh")
