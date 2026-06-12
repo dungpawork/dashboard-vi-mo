@@ -61,6 +61,28 @@ HEADERS = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit
            "Accept-Language": "en-US,en;q=0.9,vi;q=0.8"}
 COOKIES = {"CONSENT": "YES+1", "SOCS": "CAI"}
 
+_SCRAPER = None
+
+
+def http_get(url, label=""):
+    """GET thường; nếu bị 403 (Cloudflare) thì thử lại bằng cloudscraper."""
+    global _SCRAPER
+    r = requests.get(url, timeout=25, headers=HEADERS, cookies=COOKIES)
+    if r.status_code != 403:
+        return r
+    print(f"    {label}HTTP 403 — thử vượt Cloudflare bằng cloudscraper...")
+    try:
+        if _SCRAPER is None:
+            import cloudscraper
+            _SCRAPER = cloudscraper.create_scraper(
+                browser={"browser": "chrome", "platform": "windows", "mobile": False})
+        r2 = _SCRAPER.get(url, timeout=40)
+        print(f"    {label}cloudscraper: HTTP {r2.status_code}, {len(r2.text)} ký tự")
+        return r2
+    except Exception as e:
+        print(f"    {label}cloudscraper lỗi: {e}")
+        return r
+
 
 def resolve_channel_id(url):
     m = re.search(r"/channel/(UC[0-9A-Za-z_-]{22})", url or "")
@@ -102,7 +124,7 @@ def substack_feed_url(url):
         handle = m.group(1)
         try:
             api = f"https://substack.com/api/v1/user/{handle}/public_profile"
-            r = requests.get(api, timeout=20, headers=HEADERS)
+            r = http_get(api, "API hồ sơ: ")
             print(f"    Hỏi API hồ sơ Substack: HTTP {r.status_code}")
             if r.status_code == 200:
                 prof = r.json()
@@ -128,7 +150,7 @@ def substack_feed_url(url):
             print(f"    Lỗi hỏi API hồ sơ: {e}")
         # Dự phòng: đọc trang hồ sơ tìm tên miền bản tin
         try:
-            r = requests.get(u, timeout=20, headers=HEADERS)
+            r = http_get(u, "Trang hồ sơ: ")
             print(f"    Tải trang hồ sơ: HTTP {r.status_code}, {len(r.text)} ký tự")
             doms = re.findall(r'https?://([a-zA-Z0-9-]+)\.substack\.com', r.text)
             doms = [d for d in doms if d not in ("www", "substack", "open", "api", "cdn", "support")]
@@ -148,7 +170,7 @@ def list_substack_posts(url, limit=MAX_PER_CHANNEL):
     if not feed_url:
         return []
     try:
-        r = requests.get(feed_url, timeout=20, headers=HEADERS)
+        r = http_get(feed_url, "RSS: ")
         print(f"    Tải RSS: HTTP {r.status_code}, {len(r.text)} ký tự")
         if r.status_code != 200:
             print("    => RSS bị từ chối.")
