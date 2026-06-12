@@ -735,30 +735,18 @@ elif page == "🗂️ Quản lý nguồn":
 
         order = sorted(by_video.items(), key=lambda kv: (chan_of(*kv), date_of(*kv)), reverse=False)
 
-        # Tìm kiếm theo tiêu đề / kênh / mã video
-        q = st.text_input("🔎 Tìm theo kênh hoặc tiêu đề video", placeholder="vd: VIF, lạm phát...").strip().lower()
+        # Tìm kiếm theo kênh / tiêu đề / mã video / chuyên gia / khu vực
+        q = st.text_input("🔎 Tìm theo kênh, tiêu đề, chuyên gia hoặc khu vực",
+                          placeholder="vd: VIF, lạm phát, Long Phan, Mỹ...").strip().lower()
         if q:
             def match(vid, a0):
                 title = (videos.get(vid, {}).get("title", "") or a0[0].get("video_title", "")).lower()
-                return q in chan_of(vid, a0).lower() or q in title or q in vid.lower()
+                if q in chan_of(vid, a0).lower() or q in title or q in vid.lower():
+                    return True
+                return any(q in (a.get("expert", "") or "").lower()
+                           or q in (a.get("region", "") or "").lower() for a in a0)
             order = [(vid, a0) for vid, a0 in order if match(vid, a0)]
             st.caption(f"Tìm thấy {len(order)} nguồn khớp.")
-
-        # Cập nhật nhanh nguồn cũ: lấy link các nguồn (theo bộ lọc) để chạy lại qua Gemini
-        with st.expander("⚡ Cập nhật nhanh dữ liệu nguồn cũ (chạy lại qua Gemini)"):
-            st.caption("Copy khối dưới đây dán vào Gemini, rồi mang kết quả sang trang **Nhập tay** "
-                       "(tích '🔁 Làm lại') để ghi đè dữ liệu mới cho các nguồn này.")
-            only_missing = st.checkbox("Chỉ lấy nguồn còn thiếu tiêu đề", value=True)
-            upd = [(vid, a0) for vid, a0 in order
-                   if (not only_missing) or not (videos.get(vid, {}).get("title", "") or a0[0].get("video_title", ""))]
-            links = [vurl_of(vid, a0) for vid, a0 in upd]
-            if links:
-                block = (cfg["manual_prompt_template"].replace("{topics}", build_topic_guide(cfg))
-                         .replace("{links}", "\n".join(links)))
-                st.caption(f"{len(links)} nguồn:")
-                st.code(block, language="text")
-            else:
-                st.info("Không có nguồn nào cần cập nhật theo điều kiện trên.")
 
         st.subheader("Thống kê nguồn")
         h = st.columns([2, 3, 1.3, 0.8, 1])
@@ -865,39 +853,44 @@ elif page == "🗂️ Quản lý nguồn":
 elif page == "👤 Quản lý chuyên gia":
     st.title("👤 Quản lý chuyên gia")
     st.caption("Cập nhật chức vụ và ảnh đại diện cho từng chuyên gia.")
-    names = sorted({a.get("expert", "") for a in insights if a.get("expert")})
-    if not names:
+    all_names = sorted({a.get("expert", "") for a in insights if a.get("expert")})
+    if not all_names:
         st.info("Chưa có chuyên gia nào trong dữ liệu.")
     else:
-        sel = st.selectbox("Chọn chuyên gia", names)
-        prof = EXPERTS_PROFILE.get(sel, {})
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.markdown("Ảnh hiện tại:")
-            st.markdown(avatar_img(sel, 96), unsafe_allow_html=True)
-        with col2:
-            title = st.text_input("Chức vụ", value=prof.get("title", ""))
-            up = st.file_uploader("Ảnh đại diện (PNG/JPG)", type=["png", "jpg", "jpeg"])
-        if st.button("💾 Lưu hồ sơ", type="primary"):
-            avatar = prof.get("avatar", "")
-            if up is not None:
-                try:
-                    from PIL import Image
-                    im = Image.open(io.BytesIO(up.read())).convert("RGB")
-                    im.thumbnail((96, 96))
-                    out = io.BytesIO()
-                    im.save(out, format="JPEG", quality=80)
-                    avatar = "data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode()
-                except Exception as e:
-                    st.error(f"Không xử lý được ảnh: {e}")
-            remote, _ = github_get_json(EXPERTS_FILE)
-            remote = remote or {}
-            remote[sel] = {"title": title.strip(), "avatar": avatar}
-            ok, msg = commit_json(EXPERTS_FILE, remote, "Cap nhat ho so chuyen gia")
-            if ok:
-                flash_and_rerun(msg + " Đã cập nhật hồ sơ.")
-            else:
-                st.error(msg)
+        qe = st.text_input("🔎 Tìm theo tên hoặc chức vụ").strip().lower()
+        names = [n for n in all_names if (not qe) or qe in n.lower() or qe in expert_title(n).lower()]
+        if not names:
+            st.info("Không tìm thấy chuyên gia khớp.")
+        else:
+            sel = st.selectbox("Chọn chuyên gia", names)
+            prof = EXPERTS_PROFILE.get(sel, {})
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                st.markdown("Ảnh hiện tại:")
+                st.markdown(avatar_img(sel, 96), unsafe_allow_html=True)
+            with col2:
+                title = st.text_input("Chức vụ", value=prof.get("title", ""))
+                up = st.file_uploader("Ảnh đại diện (PNG/JPG)", type=["png", "jpg", "jpeg"])
+            if st.button("💾 Lưu hồ sơ", type="primary"):
+                avatar = prof.get("avatar", "")
+                if up is not None:
+                    try:
+                        from PIL import Image
+                        im = Image.open(io.BytesIO(up.read())).convert("RGB")
+                        im.thumbnail((96, 96))
+                        out = io.BytesIO()
+                        im.save(out, format="JPEG", quality=80)
+                        avatar = "data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode()
+                    except Exception as e:
+                        st.error(f"Không xử lý được ảnh: {e}")
+                remote, _ = github_get_json(EXPERTS_FILE)
+                remote = remote or {}
+                remote[sel] = {"title": title.strip(), "avatar": avatar}
+                ok, msg = commit_json(EXPERTS_FILE, remote, "Cap nhat ho so chuyen gia")
+                if ok:
+                    flash_and_rerun(msg + " Đã cập nhật hồ sơ.")
+                else:
+                    st.error(msg)
 
 
 # ==================== ⚙️ CẤU HÌNH ====================
