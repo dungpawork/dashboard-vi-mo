@@ -150,6 +150,23 @@ def github_put_json(path, data, message):
     return False, "Xung đột khi lưu, thử lại sau."
 
 
+def commit_json(path, payload, message):
+    """Ghi lên GitHub; nếu OK thì ghi luôn bản local để phiên hiện tại thấy ngay."""
+    ok, msg = github_put_json(path, payload, message)
+    if ok:
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+    return ok, msg
+
+
+def flash_and_rerun(msg):
+    st.session_state["flash"] = msg
+    st.rerun()
+
+
 # ==================== Tiện ích ====================
 
 def extract_video_id(link):
@@ -168,6 +185,11 @@ def ts_to_seconds(ts):
     if len(parts) == 2:
         return parts[0] * 60 + parts[1]
     return parts[0] if parts else 0
+
+
+def yt_iframe(vid, start=0, height=200):
+    return (f'<iframe width="100%" height="{height}" src="https://www.youtube.com/embed/{vid}'
+            f'?start={start}" frameborder="0" allow="encrypted-media; fullscreen" allowfullscreen></iframe>')
 
 
 def parse_time_tags(text):
@@ -459,15 +481,13 @@ def render_insight(a, ctx=""):
 
     ts = a.get("video_timestamp")
     vid, sec = a.get("video_id", ""), ts_to_seconds(ts)
-    iframe = (f'<iframe width="100%" height="200" src="https://www.youtube.com/embed/{vid}'
-              f'?start={sec}" frameborder="0" allow="encrypted-media; fullscreen" allowfullscreen></iframe>')
     if ts:
         left, right = st.columns([5, 1.4])
         left.markdown(meta, unsafe_allow_html=True)
         with right:
             if HAS_POPOVER and vid:
                 with st.popover(f"▶️ {ts}"):
-                    components.html(iframe, height=210)
+                    components.html(yt_iframe(vid, sec, 200), height=210)
             elif HAS_DIALOG and vid:
                 if st.button(f"▶️ {ts}", key=f"pl_{ctx}_{a['id']}"):
                     _play_dialog(vid, sec, a.get("video_title", ""))
@@ -500,6 +520,9 @@ with st.sidebar:
             st.session_state["page"] = lbl
             st.rerun()
 page = st.session_state["page"]
+
+if st.session_state.get("flash"):
+    st.success(st.session_state.pop("flash"))
 
 # Cổng mật khẩu cho toàn bộ khu Công cụ
 if page in NAV_TOOLS and not st.session_state.get("is_admin"):
@@ -677,11 +700,11 @@ elif page == "✍️ Nhập tay":
                 existing = {i["id"] for i in remote.get("insights", [])}
                 merged = [i for i in ni if i["id"] not in existing] + remote.get("insights", [])
                 payload = {"updated_at": "(vừa cập nhật tay)", "videos": rv, "insights": merged}
-                ok, msg = github_put_json(DATA_FILE, payload, "Them nhan dinh thu cong")
+                ok, msg = commit_json(DATA_FILE, payload, "Them nhan dinh thu cong")
                 if ok:
                     added = len([i for i in ni if i["id"] not in existing])
                     st.session_state.pop("preview", None)
-                    st.success(f"Đã lưu {added} nhận định. Mở trang Nhận định và Tải lại sau ~1 phút.")
+                    flash_and_rerun(f"Đã lưu {added} nhận định.")
                 else:
                     st.error(msg)
 
@@ -712,14 +735,22 @@ elif page == "🗂️ Quản lý nguồn":
         order = sorted(by_video.items(), key=lambda kv: (chan_of(*kv), date_of(*kv)), reverse=False)
 
         st.subheader("Thống kê nguồn")
-        st.dataframe(
-            [{"Kênh": chan_of(vid, a0), "Link video": vurl_of(vid, a0),
-              "Tiêu đề": videos.get(vid, {}).get("title", "") or a0[0].get("video_title", ""),
-              "Ngày đăng": date_of(vid, a0), "Số nhận định": len(a0)}
-             for vid, a0 in order],
-            use_container_width=True, hide_index=True,
-            column_config={"Link video": st.column_config.LinkColumn("Link video", display_text="▶ Mở"),
-                           "Kênh": st.column_config.TextColumn(width="medium")})
+        h = st.columns([2, 3, 1.3, 0.8, 1])
+        for col, t in zip(h, ["Kênh", "Tiêu đề", "Ngày đăng", "Số NĐ", "Xem"]):
+            col.caption(t)
+        for vid, a0 in order:
+            row = st.columns([2, 3, 1.3, 0.8, 1])
+            row[0].write(chan_of(vid, a0))
+            row[1].write(videos.get(vid, {}).get("title", "") or a0[0].get("video_title", "")
+                         or f"youtu.be/{vid}")
+            row[2].write(date_of(vid, a0))
+            row[3].write(len(a0))
+            with row[4]:
+                if HAS_POPOVER:
+                    with st.popover("▶ Xem"):
+                        components.html(yt_iframe(vid, 0, 210), height=220)
+                else:
+                    st.markdown(f"[▶ Mở]({vurl_of(vid, a0)})")
 
         st.subheader("Sửa / xóa từng nguồn")
         editors, ch_edit, del_src, orig = {}, {}, {}, {}
@@ -731,7 +762,12 @@ elif page == "🗂️ Quản lý nguồn":
             orig[vid] = {a["id"] for a in child}
             label = f"🎬 {chan} · youtu.be/{vid}" + (f" — {title[:40]}" if title else "") + f" ({len(child)})"
             with st.expander(label):
-                st.markdown(f"🔗 Video gốc: [{vurl}]({vurl})")
+                lc, rc = st.columns([4, 1])
+                lc.markdown(f"🔗 Video gốc: [{vurl}]({vurl})")
+                with rc:
+                    if HAS_POPOVER:
+                        with st.popover("▶ Xem nhanh"):
+                            components.html(yt_iframe(vid, 0, 210), height=220)
                 ch_edit[vid] = st.text_input("Tên kênh (áp cho mọi nhận định của nguồn)",
                                              value=chan, key="chan_" + vid)
                 editors[vid] = st.data_editor(
@@ -784,8 +820,11 @@ elif page == "🗂️ Quản lý nguồn":
                             rvideos[a["video_id"]]["channel"] = e["channel"]
                 out.append(a)
             payload = {"updated_at": "(vừa sửa nguồn)", "videos": rvideos, "insights": out}
-            ok, msg = github_put_json(DATA_FILE, payload, "Quan ly nguon")
-            st.success(msg + " Tải lại sau ~1 phút.") if ok else st.error(msg)
+            ok, msg = commit_json(DATA_FILE, payload, "Quan ly nguon")
+            if ok:
+                flash_and_rerun(msg + " Đã cập nhật nguồn.")
+            else:
+                st.error(msg)
 
 
 # ==================== 👤 QUẢN LÝ CHUYÊN GIA ====================
@@ -821,8 +860,11 @@ elif page == "👤 Quản lý chuyên gia":
             remote, _ = github_get_json(EXPERTS_FILE)
             remote = remote or {}
             remote[sel] = {"title": title.strip(), "avatar": avatar}
-            ok, msg = github_put_json(EXPERTS_FILE, remote, "Cap nhat ho so chuyen gia")
-            st.success(msg + " Tải lại sau ~1 phút.") if ok else st.error(msg)
+            ok, msg = commit_json(EXPERTS_FILE, remote, "Cap nhat ho so chuyen gia")
+            if ok:
+                flash_and_rerun(msg + " Đã cập nhật hồ sơ.")
+            else:
+                st.error(msg)
 
 
 # ==================== ⚙️ CẤU HÌNH ====================
@@ -877,5 +919,8 @@ else:
                        "channels": channels, "topics": topics,
                        "prompt_instructions": auto_prompt.strip() or DEFAULT_AUTO_PROMPT,
                        "manual_prompt_template": manual_tpl.strip() or DEFAULT_MANUAL_TEMPLATE}
-            ok, msg = github_put_json(CONFIG_FILE, new_cfg, "Cap nhat cau hinh")
-            st.success(msg + " Khởi động lại sau ~1 phút.") if ok else st.error(msg)
+            ok, msg = commit_json(CONFIG_FILE, new_cfg, "Cap nhat cau hinh")
+            if ok:
+                flash_and_rerun(msg + " Đã áp dụng cấu hình.")
+            else:
+                st.error(msg)
