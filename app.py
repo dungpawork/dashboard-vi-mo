@@ -37,10 +37,10 @@ DEFAULT_MANUAL_TEMPLATE = (
     "Bạn là trợ lý phân tích kinh tế. Với MỖI link video, xem video và rút ra các nhận định kinh tế "
     "quan trọng. Ưu tiên nhận định DỰ BÁO TƯƠNG LAI và SO SÁNH mục tiêu/kế hoạch; không có mới lấy hiện trạng.\n\n"
     "Phân loại mỗi nhận định vào ĐÚNG MỘT chủ đề trong danh sách sau:\n{topics}\n\n"
-    "Mỗi video trả về: video, channel, posted_at (YYYY-MM-DD), insights[]. Mỗi nhận định: expert, "
+    "Mỗi video trả về: video, channel, title (tiêu đề video), posted_at (YYYY-MM-DD), insights[]. Mỗi nhận định: expert, "
     "region (Việt Nam/Mỹ/Châu Âu/Trung Quốc/Khác), topic (chép ĐÚNG TÊN ở trên), content (2-4 câu), "
     "impact (Tích cực/Trung lập/Tiêu cực), timestamp (mm:ss), refers_to (vd \"Quý 3/2026\").\n\n"
-    "CHỈ trả về JSON:\n[{\"video\":\"<link>\",\"channel\":\"...\",\"posted_at\":\"...\",\"insights\":"
+    "CHỈ trả về JSON:\n[{\"video\":\"<link>\",\"channel\":\"...\",\"title\":\"...\",\"posted_at\":\"...\",\"insights\":"
     "[{\"expert\":\"...\",\"region\":\"...\",\"topic\":\"...\",\"content\":\"...\",\"impact\":\"...\","
     "\"timestamp\":\"mm:ss\",\"refers_to\":\"...\"}]}]\n\nDanh sách video:\n{links}")
 
@@ -310,6 +310,7 @@ def parse_gemini_json(text):
 
 
 def build_manual_insights(parsed, topics):
+    now_str = datetime.now(VN_TZ).strftime("%Y-%m-%d %H:%M")
     new_videos, new_insights, skipped = {}, [], 0
     for item in parsed:
         vid = extract_video_id(item.get("video", "") or item.get("link", "") or item.get("url", ""))
@@ -318,9 +319,9 @@ def build_manual_insights(parsed, topics):
             continue
         url = f"https://youtu.be/{vid}"
         channel = (item.get("channel") or "(không rõ kênh)").strip()
+        title = (item.get("title") or "").strip()
         posted = (item.get("posted_at") or item.get("published") or "").strip()
-        new_videos[vid] = {"channel": channel, "title": item.get("title", ""),
-                           "published": posted, "url": url}
+        new_videos[vid] = {"channel": channel, "title": title, "published": posted, "url": url}
         for ins in item.get("insights", []):
             if not ins.get("content"):
                 continue
@@ -342,9 +343,9 @@ def build_manual_insights(parsed, topics):
                 "topic": topic, "content": ins.get("content", "").strip(),
                 "impact": impact, "region": region, "video_timestamp": ts,
                 "video_url_at": url + (f"?t={ts_to_seconds(ts)}" if ts else ""),
-                "video_title": item.get("title", ""), "video_url": url,
+                "video_title": title, "video_url": url,
                 "posted_at": posted, "refers_to": ins.get("refers_to", "").strip(),
-                "source": "thủ công", "created_at": ""})
+                "source": "thủ công", "created_at": now_str})
     return new_insights, new_videos, skipped
 
 
@@ -697,22 +698,40 @@ elif page == "🗂️ Quản lý nguồn":
     if not by_video:
         st.info("Chưa có nguồn nào.")
     else:
+        def vurl_of(vid, a0):
+            return (videos.get(vid, {}).get("url") or a0[0].get("video_url")
+                    or f"https://youtu.be/{vid}")
+
+        # gom theo kênh rồi theo ngày đăng mới nhất
+        def chan_of(vid, a0):
+            return videos.get(vid, {}).get("channel") or a0[0].get("channel", "")
+
+        def date_of(vid, a0):
+            return (videos.get(vid, {}).get("published", "") or a0[0].get("posted_at", ""))[:10]
+
+        order = sorted(by_video.items(), key=lambda kv: (chan_of(*kv), date_of(*kv)), reverse=False)
+
         st.subheader("Thống kê nguồn")
-        st.dataframe([{"Kênh": videos.get(vid, {}).get("channel", a0[0].get("channel", "")),
-                       "Tiêu đề": videos.get(vid, {}).get("title", a0[0].get("video_title", "")),
-                       "Ngày đăng": (videos.get(vid, {}).get("published", "") or a0[0].get("posted_at", ""))[:10],
-                       "Số nhận định": len(a0)}
-                      for vid, a0 in by_video.items()],
-                     use_container_width=True, hide_index=True)
+        st.dataframe(
+            [{"Kênh": chan_of(vid, a0), "Link video": vurl_of(vid, a0),
+              "Tiêu đề": videos.get(vid, {}).get("title", "") or a0[0].get("video_title", ""),
+              "Ngày đăng": date_of(vid, a0), "Số nhận định": len(a0)}
+             for vid, a0 in order],
+            use_container_width=True, hide_index=True,
+            column_config={"Link video": st.column_config.LinkColumn("Link video", display_text="▶ Mở"),
+                           "Kênh": st.column_config.TextColumn(width="medium")})
 
         st.subheader("Sửa / xóa từng nguồn")
         editors, ch_edit, del_src, orig = {}, {}, {}, {}
-        for vid, child in by_video.items():
+        for vid, child in order:
             meta = videos.get(vid, {})
             title = meta.get("title", "") or (child[0].get("video_title", ""))
-            chan = meta.get("channel", "") or child[0].get("channel", "")
+            chan = chan_of(vid, child)
+            vurl = vurl_of(vid, child)
             orig[vid] = {a["id"] for a in child}
-            with st.expander(f"🎬 {chan} — {title[:55]} ({len(child)} nhận định)"):
+            label = f"🎬 {chan} · youtu.be/{vid}" + (f" — {title[:40]}" if title else "") + f" ({len(child)})"
+            with st.expander(label):
+                st.markdown(f"🔗 Video gốc: [{vurl}]({vurl})")
                 ch_edit[vid] = st.text_input("Tên kênh (áp cho mọi nhận định của nguồn)",
                                              value=chan, key="chan_" + vid)
                 editors[vid] = st.data_editor(
