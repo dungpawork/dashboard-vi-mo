@@ -1,18 +1,49 @@
 {
   "model": "gemini-2.5-flash-lite",
-  "update_hours": [7],
+  "update_hours": [
+    7
+  ],
   "channels": [
-    {"id": "ch_taichinh", "name": "Tài chính & Kinh doanh TV", "url": "https://youtube.com/@taichinhkinhdoanhtv"},
-    {"id": "ch_yeukinhte", "name": "Yêu Kinh Tế", "url": "https://youtube.com/@yeukinhte"}
+    {
+      "id": "ch_ecc540",
+      "name": "Tài chính & Kinh doanh TV",
+      "url": "https://youtube.com/@taichinhkinhdoanhtv"
+    },
+    {
+      "id": "ch_dc8c68",
+      "name": "Yêu Kinh Tế",
+      "url": "https://youtube.com/@yeukinhte"
+    }
   ],
   "topics": [
-    {"name": "GDP & Tăng trưởng", "row": 1},
-    {"name": "Lạm phát", "row": 1},
-    {"name": "Lãi suất", "row": 2},
-    {"name": "Tỷ giá", "row": 2},
-    {"name": "Chứng khoán", "row": 2},
-    {"name": "Bất động sản", "row": 3},
-    {"name": "Chính sách Tài khóa", "row": 3}
+    {
+      "name": "GDP & Tăng trưởng",
+      "row": 1
+    },
+    {
+      "name": "Lạm phát",
+      "row": 1
+    },
+    {
+      "name": "Thị trường 1 - Dân cư",
+      "row": 2
+    },
+    {
+      "name": "Thị trường 2 - Liên NH",
+      "row": 2
+    },
+    {
+      "name": "Thị trường 3 - OMO/Tín phiếu",
+      "row": 2
+    },
+    {
+      "name": "Chính sách Tài khóa",
+      "row": 3
+    },
+    {
+      "name": "Tỷ giá",
+      "row": 3
+    }
   ],
   "prompt_instructions": "Bạn là trợ lý phân tích kinh tế. Đọc bản ghi (có mốc thời gian) của video và rút ra các NHẬN ĐỊNH kinh tế quan trọng. Tóm tắt mỗi nhận định trong 2-4 câu, nêu rõ số liệu nếu có.",
   "manual_prompt_template": "Bạn là trợ lý phân tích kinh tế. Với MỖI link video dưới đây, hãy xem video và rút ra các nhận định kinh tế quan trọng.\n\nPhân loại mỗi nhận định vào ĐÚNG MỘT trong các chủ đề: {topics}\n\nVới mỗi nhận định, cho biết:\n- expert: tên chuyên gia phát biểu (khách mời hoặc chủ kênh). Nếu không rõ tên, ghi tên kênh.\n- topic: chủ đề (chọn trong danh sách trên).\n- content: tóm tắt nhận định 2-4 câu, nêu rõ số liệu nếu có.\n- timestamp: mốc thời gian trong video (dạng mm:ss) nơi nói nhận định đó.\n- refers_to: nhận định nói về thời điểm/giai đoạn nào (vd \"Tháng 6/2026\", \"Quý 3 2026\"); nếu không rõ thì để \"\".\n\nCHỈ trả về JSON đúng định dạng sau, KHÔNG thêm chữ nào khác:\n[{\"video\":\"<link>\",\"insights\":[{\"expert\":\"...\",\"topic\":\"...\",\"content\":\"...\",\"timestamp\":\"mm:ss\",\"refers_to\":\"...\"}]}]\n\nDanh sách video:\n{links}"
