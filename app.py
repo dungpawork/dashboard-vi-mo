@@ -2,7 +2,7 @@
 """
 DASHBOARD NHẬN ĐỊNH CHUYÊN GIA (YouTube)
 Xem (góc trên trái):   📊 Nhận định, 🧑‍💼 Chuyên gia
-Công cụ (góc dưới, cần mật khẩu): ✍️ UPDATE NHẬN ĐỊNH, 🗂️ Quản lý nguồn, 👤 Quản lý chuyên gia, ⚙️ Cấu hình
+Công cụ (góc dưới, cần mật khẩu): ✍️ Nhập tay, 🗂️ Quản lý nguồn, 👤 Quản lý chuyên gia, ⚙️ Cấu hình
 Secrets: ADMIN_PASSWORD, GH_TOKEN, GH_REPO ; Thư viện: streamlit, requests, feedparser, Pillow
 """
 
@@ -632,7 +632,7 @@ def inject_theme_css():
 # ==================== Điều hướng ====================
 
 NAV_TOP = ["📊 Nhận định", "🧑‍💼 Chuyên gia"]
-NAV_TOOLS = ["✍️ UPDATE NHẬN ĐỊNH", "🗂️ Quản lý nguồn", "👤 Quản lý chuyên gia", "⚙️ Cấu hình"]
+NAV_TOOLS = ["✏️ UPDATE NHẬN ĐỊNH", "🗂️ Quản lý nguồn", "👤 Quản lý chuyên gia", "⚙️ Cấu hình"]
 UNLOCK_PAGE = "🔒 Mở khóa Công cụ"
 if "page" not in st.session_state:
     st.session_state["page"] = NAV_TOP[0]
@@ -681,7 +681,7 @@ if st.session_state.get("flash"):
 # Trang mở khóa khu Công cụ
 if page == UNLOCK_PAGE:
     st.title("🔒 Khu Công cụ")
-    st.caption("Nhập mật khẩu để hiện các công cụ: UPDATE NHẬN ĐỊNH, Quản lý nguồn, Quản lý chuyên gia, "
+    st.caption("Nhập mật khẩu để hiện các công cụ: Nhập tay, Quản lý nguồn, Quản lý chuyên gia, "
                "Cấu hình, Tải CSV.")
     if st.session_state.get("is_admin"):
         st.success("Đã mở khóa. Các công cụ hiện ở thanh bên trái.")
@@ -698,7 +698,7 @@ if page in NAV_TOOLS and not st.session_state.get("is_admin"):
 # ==================== 📊 NHẬN ĐỊNH ====================
 
 if page == "📊 Nhận định":
-    st.title("📊 Nhận định của Chuyên gia - Chọn lọc bởi DungPham.vn")
+    st.title("📊 Nhận định theo chủ đề")
 
     if not insights:
         st.info("Chưa có nhận định. Dùng **Nhập tay** hoặc chờ luồng tự động.")
@@ -787,7 +787,7 @@ elif page == "🧑‍💼 Chuyên gia":
 
 # ==================== ✍️ NHẬP TAY ====================
 
-elif page == "✍️ Nhập tay":
+elif page == "✏️ UPDATE NHẬN ĐỊNH":
     st.title("✍️ Nhập nhận định thủ công")
     st.caption("① Chọn video gợi ý hoặc dán link → ② Copy prompt cho Gemini → ③ Dán kết quả → ④ Xem trước & Lưu.")
 
