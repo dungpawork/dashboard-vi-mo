@@ -566,8 +566,7 @@ def render_insight(a, ctx="", show_byline=True):
     if a.get("posted_at"):
         parts.append(f"📅 {a['posted_at'][:10]}")
     link = a.get("video_url", "")
-    if not a.get("video_timestamp") and link and not is_youtube_id(a.get("video_id", "")):
-        parts.append(f"<a href='{link}' target='_blank' style='color:{t['muted']}'>📰 bài viết</a>")
+    is_post = (not a.get("video_timestamp")) and link and not is_youtube_id(a.get("video_id", ""))
     meta = f"<span style='font-size:14px;color:{t['muted']}'>" + "  ·  ".join(parts) + "</span>"
 
     ts = a.get("video_timestamp")
@@ -584,6 +583,22 @@ def render_insight(a, ctx="", show_byline=True):
                     _play_dialog(vid, sec, a.get("video_title", ""))
             else:
                 st.markdown(f"[▶️ {ts}]({a.get('video_url_at','')})")
+    elif is_post:
+        left, right = st.columns([5, 1.4])
+        left.markdown(meta, unsafe_allow_html=True)
+        with right:
+            if HAS_POPOVER:
+                with st.popover("📰 Đọc bài"):
+                    st.markdown(f"**{a.get('video_title','') or 'Bài viết'}**  ·  "
+                                f"[↗ Mở ở tab mới]({link})")
+                    components.html(
+                        f"<div style='width:760px;max-width:88vw'>"
+                        f"<iframe src='{link}' style='width:100%;height:600px;border:0'></iframe>"
+                        f"<div style='font-size:12px;color:#888;margin-top:6px'>Nếu khung trên trống, "
+                        f"trang gốc không cho nhúng — bấm '↗ Mở ở tab mới' phía trên.</div></div>",
+                        height=640)
+            else:
+                st.markdown(f"[📰 Mở bài]({link})")
     else:
         st.markdown(meta, unsafe_allow_html=True)
 
@@ -604,6 +619,8 @@ def inject_theme_css():
         border-radius:{t['radius']}; box-shadow:{t['shadow']}; }}
     [data-testid="stExpander"] {{ background:{t['card']}; border:1px solid {t['border']} !important;
         border-radius:{t['radius']}; }}
+    [data-testid="stPopoverBody"], div[data-baseweb="popover"] [data-testid="stPopoverBody"] {{
+        max-width: 88vw !important; }}
     /* Nút */
     .stButton > button, .stDownloadButton > button, [data-testid="stPopoverButton"] {{
         border-radius: 12px !important; border:1px solid {t['border']} !important;
