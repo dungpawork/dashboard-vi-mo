@@ -503,8 +503,19 @@ def make_keep(posted_choice, refers_choice, region_filter, impact_filter="Tất 
     return keep
 
 
+def _date_key(a):
+    s = a.get("posted_at", "") or ""
+    m = re.match(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", s)
+    if m:
+        return f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+    m2 = re.match(r"(\d{4})[-/](\d{1,2})", s)
+    if m2:
+        return f"{int(m2.group(1)):04d}-{int(m2.group(2)):02d}-00"
+    return ""
+
+
 def sort_newest(items):
-    return sorted(items, key=lambda a: posted_index(a.get("posted_at", "")) or -1, reverse=True)
+    return sorted(items, key=_date_key, reverse=True)
 
 
 def try_unlock(key):
