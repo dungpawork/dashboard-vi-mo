@@ -69,6 +69,20 @@ def get_updates(offset):
     return []
 
 
+def download_file(doc):
+    """Tải nội dung file đính kèm (vd .txt/.json chứa JSON)."""
+    try:
+        fid = doc.get("file_id")
+        r = requests.get(f"{API}/getFile", params={"file_id": fid}, timeout=20)
+        path = r.json()["result"]["file_path"]
+        fr = requests.get(f"https://api.telegram.org/file/bot{TOKEN}/{path}", timeout=40)
+        fr.encoding = "utf-8"
+        return fr.text
+    except Exception as e:
+        print(f"Lỗi tải file đính kèm: {e}")
+        return ""
+
+
 # ---- Xử lý nội dung (giống app: tách video/bài viết) ----
 
 def extract_video_id(link):
@@ -203,34 +217,64 @@ def main():
     sugg_items = sugg.get("items", {})
 
     max_update_id = offset
-    total_added, total_videos, changed = 0, 0, False
+    texts, file_contents = [], []
 
     for up in updates:
         max_update_id = max(max_update_id, up.get("update_id", 0) + 1)
         msg = up.get("message") or up.get("channel_post") or {}
         chat = str(msg.get("chat", {}).get("id", ""))
-        text = msg.get("text", "") or ""
-        print(f"  Tin từ chat {chat}: {text[:40]!r}")
         if chat != CHAT_ID:
-            print(f"    -> Bỏ qua (chat {chat} khác CHAT_ID {CHAT_ID}).")
+            print(f"    -> Bỏ qua tin từ chat {chat} (khác CHAT_ID {CHAT_ID}).")
             continue
-        if not text.strip():
+        doc = msg.get("document")
+        text = msg.get("text", "") or msg.get("caption", "") or ""
+        if doc:
+            print(f"  File đính kèm: {doc.get('file_name','?')}")
+            content = download_file(doc)
+            if content:
+                file_contents.append(content)
             continue
-        if text.strip() in ("/start", "/help"):
-            send("Xin chào! Gửi cho tôi JSON nhận định (kết quả từ Gem) là tôi lưu vào dashboard. "
-                 "Mỗi tin một bài/video.")
+        t = text.strip()
+        if not t:
             continue
+        if t in ("/start", "/help"):
+            send("Xin chào! Gửi JSON nhận định (kết quả từ Gem). JSON ngắn dán thẳng cũng được; "
+                 "JSON dài bị Telegram cắt thì gửi dưới dạng FILE .txt đính kèm cho chắc.")
+            continue
+        print(f"  Tin text: {t[:40]!r}")
+        texts.append(text)
 
-        parsed = parse_json(text)
-        if not parsed:
-            send("⚠️ Không đọc được JSON trong tin này. Hãy gửi đúng phần JSON từ Gem.")
-            continue
+    # Gom các cụm JSON cần xử lý
+    parsed_batches = []
+    for content in file_contents:
+        p = parse_json(content)
+        if p:
+            parsed_batches.append(p)
+        else:
+            send("⚠️ File đính kèm không đọc được JSON hợp lệ.")
+    if texts:
+        # Thử ghép tất cả mảnh text (nối thẳng vì Telegram cắt không thêm ký tự)
+        p = parse_json("".join(texts))
+        if p:
+            parsed_batches.append(p)
+        else:
+            # Không ghép được -> thử parse từng tin riêng (nhiều JSON hoàn chỉnh)
+            ok_any = False
+            for t in texts:
+                pt = parse_json(t)
+                if pt:
+                    parsed_batches.append(pt)
+                    ok_any = True
+            if not ok_any:
+                send("⚠️ Không đọc được JSON. Nếu JSON dài bị cắt thành nhiều tin, "
+                     "hãy gửi lại dưới dạng FILE .txt đính kèm.")
+
+    total_added, total_videos, changed = 0, 0, False
+    for parsed in parsed_batches:
         ni, nv = build_insights(parsed, topics)
         if not ni:
-            send("⚠️ JSON hợp lệ nhưng không có nhận định nào (thiếu trường 'video' hoặc 'insights'?).")
+            send("⚠️ JSON hợp lệ nhưng không có nhận định (thiếu 'video' hoặc 'insights'?).")
             continue
-
-        # Ghi đè theo video/bài
         new_keys = set(nv.keys())
         videos.update(nv)
         for k in new_keys:
@@ -238,7 +282,6 @@ def main():
             if txt:
                 videos[k]["post_text"] = txt
         insights = [i for i in insights if i.get("video_id") not in new_keys] + ni
-        # Dọn khỏi gợi ý
         for k in new_keys:
             sugg_items.pop(k, None)
         total_added += len(ni)
