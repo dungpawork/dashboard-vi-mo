@@ -1,5 +1,5 @@
 {
-  "updated_at": "(vừa cập nhật tay)",
+  "updated_at": "2026-06-15 13:40 (telegram)",
   "videos": {
     "RPJ9K0VjIdY": {
       "channel": "(thủ công)",
@@ -90,6 +90,12 @@
       "title": "Càng ngày càng khó nhìn \"vết nứt\" này một cách bình thường.",
       "published": "2026-06-08",
       "url": "https://truongdacnguyen.substack.com/p/cang-ngay-cang-kho-nhin-vet-nut-nay"
+    },
+    "NV3XWUkGmrc": {
+      "channel": "VTC NEWS",
+      "title": "1 Triệu Tỷ Đồng Nợ Xấu Ngân Hàng: Vì Sao Lãi Suất Cho Vay Khó Giảm Sâu? | CG Phạm Xuân Hòe",
+      "published": "2026-06-14",
+      "url": "https://youtu.be/NV3XWUkGmrc"
     }
   },
   "insights": [
@@ -1550,6 +1556,96 @@
       "refers_to": "Năm 2026",
       "source": "thủ công",
       "created_at": "2026-06-12 15:04"
+    },
+    {
+      "id": "3a633af26c81e730b7dc9458c1b6ccf8",
+      "video_id": "NV3XWUkGmrc",
+      "channel": "VTC NEWS",
+      "expert": "Phạm Xuân Hòe",
+      "topic": "Lạm phát",
+      "content": "Chính phủ và cơ quan quản lý Việt Nam đang duy trì mục tiêu kiểm soát lạm phát trong vùng từ 4% đến 4,5%. Áp lực chi phí đẩy từ việc giá dầu thế giới neo cao đang trực tiếp phản ánh vào chỉ số CPI hàng hóa, dịch vụ và đẩy giá logistic vận tải tăng mạnh.",
+      "impact": "Tiêu cực",
+      "region": "Việt Nam",
+      "video_timestamp": "02:10",
+      "video_url_at": "https://youtu.be/NV3XWUkGmrc?t=130",
+      "video_title": "1 Triệu Tỷ Đồng Nợ Xấu Ngân Hàng: Vì Sao Lãi Suất Cho Vay Khó Giảm Sâu? | CG Phạm Xuân Hòe",
+      "video_url": "https://youtu.be/NV3XWUkGmrc",
+      "posted_at": "2026-06-14",
+      "refers_to": "Năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-15 13:40"
+    },
+    {
+      "id": "e3dcca315e48e8c47933e8fce4a4fb6f",
+      "video_id": "NV3XWUkGmrc",
+      "channel": "VTC NEWS",
+      "expert": "Phạm Xuân Hòe",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Tổng số dư nợ tín dụng của nền kinh tế tính đến hết quý 1 đã vượt mốc 19 triệu tỷ đồng, ghi nhận mức tăng trưởng đạt 3,15% (hoặc 3,18% tùy báo cáo tháng 3). Trong khi đó, nguồn vốn huy động tăng trưởng rất chậm và chỉ duy trì ở mức khoảng 16 triệu tỷ đồng, tạo ra khoảng trống lệch pha kỳ hạn lên đến 5 triệu tỷ đồng.",
+      "impact": "Tiêu cực",
+      "region": "Việt Nam",
+      "video_timestamp": "05:01",
+      "video_url_at": "https://youtu.be/NV3XWUkGmrc?t=301",
+      "video_title": "1 Triệu Tỷ Đồng Nợ Xấu Ngân Hàng: Vì Sao Lãi Suất Cho Vay Khó Giảm Sâu? | CG Phạm Xuân Hòe",
+      "video_url": "https://youtu.be/NV3XWUkGmrc",
+      "posted_at": "2026-06-14",
+      "refers_to": "Tháng 3/2026",
+      "source": "telegram",
+      "created_at": "2026-06-15 13:40"
+    },
+    {
+      "id": "c385683bde102279e8c0ddd3739b1d94",
+      "video_id": "NV3XWUkGmrc",
+      "channel": "VTC NEWS",
+      "expert": "Phạm Xuân Hòe",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Mặt bằng lãi suất cho vay của hệ thống ngân hàng thương mại Việt Nam khó giảm sâu trong quý 2 và quý 3 do áp lực từ 1 triệu tỷ đồng nợ xấu chưa được xử lý dứt điểm. Các ngân hàng buộc phải duy trì biên lãi thuần hợp lý và cộng thêm phần bù rủi ro lớn vào chi phí lãi suất cho vay đầu ra.",
+      "impact": "Tiêu cực",
+      "region": "Việt Nam",
+      "video_timestamp": "07:26",
+      "video_url_at": "https://youtu.be/NV3XWUkGmrc?t=446",
+      "video_title": "1 Triệu Tỷ Đồng Nợ Xấu Ngân Hàng: Vì Sao Lãi Suất Cho Vay Khó Giảm Sâu? | CG Phạm Xuân Hòe",
+      "video_url": "https://youtu.be/NV3XWUkGmrc",
+      "posted_at": "2026-06-14",
+      "refers_to": "Quý 3/2026",
+      "source": "telegram",
+      "created_at": "2026-06-15 13:40"
+    },
+    {
+      "id": "47e60884b0d12c8b673830172a80d560",
+      "video_id": "NV3XWUkGmrc",
+      "channel": "VTC NEWS",
+      "expert": "Phạm Xuân Hòe",
+      "topic": "GDP & Tăng trưởng",
+      "content": "Việt Nam đang đứng trước thách thức cực kỳ lớn khi cần huy động tổng lượng vốn đầu tư toàn xã hội lên tới 38 triệu tỷ đồng trong giai đoạn 5 năm tới. Tính bình quân mỗi năm nền kinh tế cần giải ngân xấp xỉ 8 triệu tỷ đồng để đáp ứng được mục tiêu tăng trưởng kinh tế hai con số xoay quanh mốc 10%.",
+      "impact": "Trung lập",
+      "region": "Việt Nam",
+      "video_timestamp": "41:14",
+      "video_url_at": "https://youtu.be/NV3XWUkGmrc?t=2474",
+      "video_title": "1 Triệu Tỷ Đồng Nợ Xấu Ngân Hàng: Vì Sao Lãi Suất Cho Vay Khó Giảm Sâu? | CG Phạm Xuân Hòe",
+      "video_url": "https://youtu.be/NV3XWUkGmrc",
+      "posted_at": "2026-06-14",
+      "refers_to": "Giai đoạn 2026-2030",
+      "source": "telegram",
+      "created_at": "2026-06-15 13:40"
+    },
+    {
+      "id": "9d26bf455ec725767923e705363c359c",
+      "video_id": "NV3XWUkGmrc",
+      "channel": "VTC NEWS",
+      "expert": "Phạm Xuân Hòe",
+      "topic": "Chính sách Tài khóa",
+      "content": "Trong cơ cấu 38 triệu tỷ đồng vốn đầu tư toàn xã hội cần thiết, nguồn lực phân bổ từ ngân sách nhà nước thông qua đầu tư công dự kiến chỉ đáp ứng được khoảng 8,5 triệu tỷ đồng (chiếm 1/5 đến 1/6 tổng nhu cầu). Phần vốn hơn 30 triệu tỷ đồng còn lại bắt buộc phải huy động từ khối kinh tế tư nhân, dòng vốn FDI và thị trường vốn.",
+      "impact": "Trung lập",
+      "region": "Việt Nam",
+      "video_timestamp": "42:17",
+      "video_url_at": "https://youtu.be/NV3XWUkGmrc?t=2537",
+      "video_title": "1 Triệu Tỷ Đồng Nợ Xấu Ngân Hàng: Vì Sao Lãi Suất Cho Vay Khó Giảm Sâu? | CG Phạm Xuân Hòe",
+      "video_url": "https://youtu.be/NV3XWUkGmrc",
+      "posted_at": "2026-06-14",
+      "refers_to": "Giai đoạn 2026-2030",
+      "source": "telegram",
+      "created_at": "2026-06-15 13:40"
     }
   ]
 }
