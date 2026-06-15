@@ -170,8 +170,18 @@ def build_insights(parsed, topics):
 
 
 def main():
+    print(f"TELEGRAM_TOKEN có: {'CÓ' if TOKEN else 'KHÔNG'} | "
+          f"TELEGRAM_CHAT_ID: {'CÓ (' + CHAT_ID + ')' if CHAT_ID else 'KHÔNG'}")
     if not TOKEN or not CHAT_ID:
-        print("Thiếu TELEGRAM_TOKEN / TELEGRAM_CHAT_ID — bỏ qua.")
+        print("=> Thiếu secret TELEGRAM_TOKEN / TELEGRAM_CHAT_ID trong repo. Bỏ qua.")
+        return
+
+    # Kiểm tra bot sống và token đúng
+    try:
+        me = requests.get(f"{API}/getMe", timeout=20)
+        print(f"getMe: HTTP {me.status_code} - {me.text[:120]}")
+    except Exception as e:
+        print(f"Lỗi gọi getMe (token sai?): {e}")
         return
 
     cfg = load_json(CONFIG_FILE, {})
@@ -179,9 +189,11 @@ def main():
 
     state = load_json(STATE_FILE, {"offset": 0})
     offset = state.get("offset", 0)
+    print(f"Offset đã lưu: {offset}")
     updates = get_updates(offset)
+    print(f"Số tin nhận được: {len(updates)}")
     if not updates:
-        print("Không có tin mới.")
+        print("Không có tin mới (đã đọc hết, hoặc chưa ai nhắn, hoặc tin >24h đã hết hạn).")
         return
 
     data = load_json(DATA_FILE, {"videos": {}, "insights": []})
@@ -198,8 +210,10 @@ def main():
         msg = up.get("message") or up.get("channel_post") or {}
         chat = str(msg.get("chat", {}).get("id", ""))
         text = msg.get("text", "") or ""
+        print(f"  Tin từ chat {chat}: {text[:40]!r}")
         if chat != CHAT_ID:
-            continue  # chỉ nghe chủ nhân
+            print(f"    -> Bỏ qua (chat {chat} khác CHAT_ID {CHAT_ID}).")
+            continue
         if not text.strip():
             continue
         if text.strip() in ("/start", "/help"):
