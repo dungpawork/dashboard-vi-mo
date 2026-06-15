@@ -11,6 +11,7 @@ import re
 import io
 import csv
 import json
+import html
 import base64
 import hashlib
 
@@ -591,12 +592,19 @@ def render_insight(a, ctx="", show_byline=True):
                 with st.popover("📰 Đọc bài"):
                     st.markdown(f"**{a.get('video_title','') or 'Bài viết'}**  ·  "
                                 f"[↗ Mở ở tab mới]({link})")
-                    components.html(
-                        f"<div style='width:760px;max-width:88vw'>"
-                        f"<iframe src='{link}' style='width:100%;height:600px;border:0'></iframe>"
-                        f"<div style='font-size:12px;color:#888;margin-top:6px'>Nếu khung trên trống, "
-                        f"trang gốc không cho nhúng — bấm '↗ Mở ở tab mới' phía trên.</div></div>",
-                        height=640)
+                    ptext = videos.get(a.get("video_id", ""), {}).get("post_text", "")
+                    if ptext:
+                        st.markdown(
+                            f"<div style='width:740px;max-width:86vw;max-height:600px;overflow:auto;"
+                            f"white-space:pre-wrap;font-size:15px;line-height:1.7;color:{t['text']}'>"
+                            f"{html.escape(ptext)}</div>", unsafe_allow_html=True)
+                    else:
+                        components.html(
+                            f"<div style='width:740px;max-width:86vw'>"
+                            f"<iframe src='{link}' style='width:100%;height:580px;border:0'></iframe>"
+                            f"<div style='font-size:12px;color:#888;margin-top:6px'>Nếu khung trống, "
+                            f"trang gốc không cho nhúng — bấm '↗ Mở ở tab mới' phía trên.</div></div>",
+                            height=620)
             else:
                 st.markdown(f"[📰 Mở bài]({link})")
     else:
@@ -978,6 +986,11 @@ elif page == "✏️ UPDATE NHẬN ĐỊNH":
                 remote = remote or {"videos": {}, "insights": []}
                 rv = remote.get("videos", {})
                 rv.update(preview["videos"])
+                # Lưu kèm nội dung bài (nếu có trong gợi ý) để đọc trong popup
+                for k in preview["videos"]:
+                    txt = sugg_items.get(k, {}).get("content", "")
+                    if txt:
+                        rv[k]["post_text"] = txt
                 # Ghi đè: bỏ nhận định cũ của các video vừa nạp, rồi thêm bản mới
                 new_vids = set(preview["videos"].keys())
                 kept = [i for i in remote.get("insights", []) if i.get("video_id") not in new_vids]
@@ -1035,43 +1048,40 @@ elif page == "🗂️ Quản lý nguồn":
             order = [(vid, a0) for vid, a0 in order if match(vid, a0)]
             st.caption(f"Tìm thấy {len(order)} nguồn khớp.")
 
-        st.subheader("Thống kê nguồn")
-        h = st.columns([2, 3, 1.3, 0.8, 1])
-        for col, t in zip(h, ["Kênh", "Tiêu đề", "Ngày đăng", "Số NĐ", "Xem"]):
-            col.caption(t)
-        for vid, a0 in order:
-            row = st.columns([2, 3, 1.3, 0.8, 1])
-            row[0].write(chan_of(vid, a0))
-            row[1].write(videos.get(vid, {}).get("title", "") or a0[0].get("video_title", "")
-                         or f"youtu.be/{vid}")
-            row[2].write(date_of(vid, a0))
-            row[3].write(len(a0))
-            with row[4]:
-                if HAS_POPOVER and is_youtube_id(vid):
-                    with st.popover("▶ Xem"):
-                        components.html(yt_iframe(vid, 0, 210), height=220)
-                else:
-                    st.markdown(f"[📰 Mở]({vurl_of(vid, a0)})")
+        # Phân trang
+        PAGE_SIZE = 15
+        total = len(order)
+        npages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
+        pc1, pc2 = st.columns([1, 3])
+        pageno = int(pc1.number_input("Trang", min_value=1, max_value=npages, value=1, step=1,
+                                      key="src_page"))
+        start = (pageno - 1) * PAGE_SIZE
+        page_order = order[start:start + PAGE_SIZE]
+        pc2.caption(f"Hiển thị {start + 1}–{min(start + PAGE_SIZE, total)} / tổng {total} nguồn "
+                    f"· {npages} trang. Nhớ **Lưu thay đổi** trước khi chuyển trang.")
 
-        st.subheader("Sửa / xóa từng nguồn")
+        st.subheader("Nguồn (bấm để xem & sửa)")
         editors, ch_edit, ti_edit, del_src, orig = {}, {}, {}, {}, {}
-        for vid, child in order:
+        for vid, child in page_order:
             meta = videos.get(vid, {})
             title = meta.get("title", "") or (child[0].get("video_title", ""))
             chan = chan_of(vid, child)
             vurl = vurl_of(vid, child)
+            d = date_of(vid, child)
             orig[vid] = {a["id"] for a in child}
-            label = f"🎬 {chan} · youtu.be/{vid}" + (f" — {title[:40]}" if title else "") + f" ({len(child)})"
+            label = f"🎬 {chan} · {title[:45] or ('youtu.be/' + vid)} · 📅 {d} · {len(child)} NĐ"
             with st.expander(label):
                 lc, rc = st.columns([4, 1])
                 with lc:
-                    st.caption("Link video gốc (bấm icon để copy):")
+                    st.caption("Link gốc (bấm icon để copy):")
                     st.code(vurl, language="text")
                 with rc:
                     if HAS_POPOVER and is_youtube_id(vid):
                         with st.popover("▶ Xem nhanh"):
                             components.html(yt_iframe(vid, 0, 210), height=220)
-                ti_edit[vid] = st.text_input("Tiêu đề video", value=title, key="ti_" + vid)
+                    elif not is_youtube_id(vid):
+                        st.markdown(f"[📰 Mở]({vurl})")
+                ti_edit[vid] = st.text_input("Tiêu đề", value=title, key="ti_" + vid)
                 ch_edit[vid] = st.text_input("Tên kênh (áp cho mọi nhận định của nguồn)",
                                              value=chan, key="chan_" + vid)
                 editors[vid] = st.data_editor(
@@ -1092,7 +1102,7 @@ elif page == "🗂️ Quản lý nguồn":
 
         if st.button("💾 Lưu thay đổi", type="primary"):
             edits, deleted, del_videos, title_edit = {}, set(), set(), {}
-            for vid, child in order:
+            for vid, child in page_order:
                 if del_src.get(vid):
                     del_videos.add(vid)
                     continue
