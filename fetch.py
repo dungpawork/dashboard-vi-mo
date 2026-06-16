@@ -225,12 +225,18 @@ def build_classify_prompt(items, topics, kw):
     for t in topics:
         ks = kw.get(t, [])
         guide.append(f"- {t}" + (f" (từ khóa: {', '.join(ks)})" if ks else ""))
-    lines = [f"{it['id']} | {it['title']}" for it in items]
+    lines = []
+    for it in items:
+        line = f"{it['id']} | {it['title']}"
+        if it.get("content"):
+            line += " || " + it["content"][:300].replace("\n", " ")
+        lines.append(line)
     return (
-        "Bạn là trợ lý phân loại video kinh tế. Dưới đây là danh sách video dạng `mã | tiêu đề`.\n"
-        "Với MỖI video, chỉ dựa trên TIÊU ĐỀ, chọn ĐÚNG MỘT chủ đề phù hợp nhất trong danh sách:\n"
+        "Bạn là trợ lý phân loại nội dung kinh tế. Dưới đây là danh sách dạng "
+        "`mã | tiêu đề` (bài viết có thêm `|| trích nội dung`).\n"
+        "Với MỖI mục, chọn ĐÚNG MỘT chủ đề phù hợp nhất trong danh sách:\n"
         + "\n".join(guide) + "\n"
-        f"Nếu tiêu đề không liên quan các chủ đề trên (giải trí, quảng cáo, kỹ năng cá nhân, "
+        f"Nếu không liên quan các chủ đề trên (giải trí, quảng cáo, kỹ năng cá nhân, "
         f"chứng khoán riêng lẻ không vĩ mô...), trả \"{NOT_SUITABLE}\".\n\n"
         "CHỈ trả về JSON: {\"<mã>\": \"<tên chủ đề>\", ...}\n\nDanh sách:\n" + "\n".join(lines))
 
@@ -259,6 +265,43 @@ def classify(items, topics, kw, model):
                 print(f"    Lỗi AI (lần {attempt+1}): {msg[:150]}")
                 time.sleep(5)
     raise RuntimeError(f"Gemini thất bại sau 3 lần: {last_err}")
+
+
+def notify_telegram(items):
+    """Gửi các gợi ý CHƯA báo qua Telegram; đánh dấu notified để khỏi gửi lại."""
+    token = os.environ.get("TELEGRAM_TOKEN", "")
+    chat = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat:
+        print("Không có TELEGRAM_TOKEN/CHAT_ID — bỏ qua gửi gợi ý.")
+        return
+    api = f"https://api.telegram.org/bot{token}"
+    new_ones = [(k, v) for k, v in items.items()
+                if v.get("status") == "gợi ý" and v.get("topic") != NOT_SUITABLE
+                and not v.get("notified")]
+    if not new_ones:
+        print("Không có gợi ý mới cần báo Telegram.")
+        return
+    # Sắp mới -> cũ theo ngày đăng
+    new_ones.sort(key=lambda kv: kv[1].get("published", ""), reverse=True)
+    sent = 0
+    for k, v in new_ones:
+        icon = "📰" if v.get("type") == "post" else "📺"
+        url = v.get("url") or ""
+        text = (f"{icon} Gợi ý mới · 🏷️ {v.get('topic','')}\n"
+                f"{v.get('title','')}\n"
+                f"{v.get('channel','')} · 📅 {v.get('published','')}\n\n"
+                f"Copy link đưa cho Gem để lấy nhận định:\n{url}")
+        try:
+            r = requests.post(f"{api}/sendMessage", timeout=20,
+                              json={"chat_id": chat, "text": text, "disable_web_page_preview": True})
+            if r.status_code == 200:
+                v["notified"] = True
+                sent += 1
+            else:
+                print(f"  Gửi Telegram lỗi {r.status_code}: {r.text[:120]}")
+        except Exception as e:
+            print(f"  Lỗi gửi Telegram: {e}")
+    print(f"Đã báo {sent} gợi ý mới qua Telegram.")
 
 
 def main():
@@ -302,6 +345,18 @@ def main():
             p["channel"] = name
             p["type"] = "post"
             fresh.append(p)
+
+    # Bài Substack do máy cá nhân đẩy lên (substack_inbox.json)
+    inbox = load_json("substack_inbox.json", {})
+    inbox_items = inbox.get("items", {})
+    if inbox_items:
+        print(f"Hộp Substack từ máy cá nhân: {len(inbox_items)} bài")
+        for pid, p in inbox_items.items():
+            if pid in known_videos or pid in items:
+                continue
+            fresh.append({"id": pid, "title": p.get("title", ""), "channel": p.get("channel", ""),
+                          "published": p.get("published", ""), "url": p.get("url", ""),
+                          "type": "post", "content": p.get("content", "")})
     print(f"Tổng nội dung mới cần phân loại: {len(fresh)}")
 
     if fresh:
@@ -310,22 +365,37 @@ def main():
             topic = labels.get(v["id"], NOT_SUITABLE)
             if topic not in topics and topic != NOT_SUITABLE:
                 topic = NOT_SUITABLE
-            items[v["id"]] = {"title": v["title"], "channel": v["channel"],
-                              "published": v["published"], "url": v["url"],
-                              "type": v.get("type", "video"),
-                              "topic": topic, "status": "gợi ý"}
+            entry = {"title": v["title"], "channel": v["channel"],
+                     "published": v["published"], "url": v["url"],
+                     "type": v.get("type", "video"), "topic": topic, "status": "gợi ý"}
+            if v.get("content"):
+                entry["content"] = v["content"]
+            items[v["id"]] = entry
             print(f"  + [{topic}] {v['title'][:60]}")
 
-    # Dọn: video đã xử lý (đã có trong data.json) thì bỏ khỏi danh sách gợi ý
+    # Dọn: nội dung đã xử lý (đã có trong data.json) thì bỏ khỏi danh sách gợi ý
     before = len(items)
     items = {k: v for k, v in items.items() if k not in known_videos}
     if before != len(items):
         print(f"Dọn {before - len(items)} gợi ý đã xử lý.")
 
+    # Gửi gợi ý mới qua Telegram (đánh dấu notified ngay trong items)
+    notify_telegram(items)
+
     sugg = {"updated_at": now_vn().strftime("%Y-%m-%d %H:%M"), "items": items}
     with open(SUGGEST_FILE, "w", encoding="utf-8") as f:
         json.dump(sugg, f, ensure_ascii=False, indent=2)
     print(f"Đã ghi {SUGGEST_FILE}: {len(items)} mục.")
+
+    # Dọn hộp Substack: bài đã chuyển sang gợi ý/đã xử lý thì bỏ khỏi inbox
+    if inbox_items:
+        kept = {k: v for k, v in inbox_items.items()
+                if k not in items and k not in known_videos}
+        if len(kept) != len(inbox_items):
+            with open("substack_inbox.json", "w", encoding="utf-8") as f:
+                json.dump({"updated_at": now_vn().strftime("%Y-%m-%d %H:%M"), "items": kept},
+                          f, ensure_ascii=False, indent=2)
+            print(f"Dọn hộp Substack: còn {len(kept)} bài.")
 
 
 if __name__ == "__main__":
