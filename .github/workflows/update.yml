@@ -23,6 +23,8 @@ jobs:
       - name: Quet kenh va goi y video
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           FORCE_ALL: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
         run: python fetch.py
       - name: Nhan JSON tu Telegram
