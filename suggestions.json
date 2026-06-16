@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-15 20:39",
+  "updated_at": "2026-06-16 07:53",
   "items": {
     "-35Pxg8RqFU": {
       "title": "MUỐN KHƠI THÔNG DÒNG VỐN, DOANH NGHIỆP PHẢI CHUẨN HÓA QUẢN TRỊ TRƯỚC TIÊN #toancanh #doanhnghiep",
@@ -216,7 +216,8 @@
       "url": "https://youtu.be/YwAJM8NBwYc",
       "type": "video",
       "topic": "GDP & Tăng trưởng",
-      "status": "gợi ý"
+      "status": "gợi ý",
+      "notified": true
     },
     "v3Sg1Z6vqjM": {
       "title": "GIẢM HỆ SỐ ICOR ĐỂ GIẢI BÀI TOÁN TỐI ƯU HÓA HIỆU HIỆU QUẢ DÒNG VỐN QUỐC GIA #toancanh #icor",
@@ -225,7 +226,8 @@
       "url": "https://youtu.be/v3Sg1Z6vqjM",
       "type": "video",
       "topic": "GDP & Tăng trưởng",
-      "status": "gợi ý"
+      "status": "gợi ý",
+      "notified": true
     },
     "4jVc_rPvOf8": {
       "title": "Giá dầu thủng đáy tháng. Thị trường có khả năng hồi phục kỹ thuật",
@@ -234,7 +236,8 @@
       "url": "https://youtu.be/4jVc_rPvOf8",
       "type": "video",
       "topic": "Lạm phát",
-      "status": "gợi ý"
+      "status": "gợi ý",
+      "notified": true
     },
     "0DxUxfCqiqc": {
       "title": "NÓNG: MỸ-IRAN ĐẠT THỎA THUẬN CHẤM DỨT CHIẾN TRANH, GIÁ DẦU GIẢM MẠNH | #ĐTDT 15/6/2026",
@@ -243,7 +246,18 @@
       "url": "https://youtu.be/0DxUxfCqiqc",
       "type": "video",
       "topic": "Lạm phát",
-      "status": "gợi ý"
+      "status": "gợi ý",
+      "notified": true
+    },
+    "5BoWbBaUf1k": {
+      "title": "MỸ - IRAN ĐẠT THỎA THUẬN CHẤM DỨT CHIẾN TRANH #chientranhiran #giadau #giavang",
+      "channel": "Tài chính & Kinh doanh TV",
+      "published": "2026-06-15",
+      "url": "https://youtu.be/5BoWbBaUf1k",
+      "type": "video",
+      "topic": "Tỷ giá",
+      "status": "gợi ý",
+      "notified": true
     }
   }
 }
