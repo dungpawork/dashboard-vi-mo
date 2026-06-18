@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-17 15:27 (telegram)",
+  "updated_at": "2026-06-19 04:29 (telegram)",
   "videos": {
     "RPJ9K0VjIdY": {
       "channel": "(thủ công)",
@@ -108,6 +108,12 @@
       "title": "Vĩ mô 2026 — Sự va đập giữa cú sốc ngoại biên và động lực nội tại | Phiên 1 | VIF Summer Summit 2026",
       "published": "2026-06-16",
       "url": "https://youtu.be/za-WPb9PeN0"
+    },
+    "tQQbVKYgxqI": {
+      "channel": "Tài chính & Kinh doanh",
+      "title": "5 ĐIỂM NHẤN VÀ TÍN HIỆU DIỀU HÂU, KỶ NGUYÊN MỚI KEVIN WARSH, ÁP LỰC LÃI SUẤT & TỶ GIÁ CHO VIỆT NAM",
+      "published": "2026-06-18",
+      "url": "https://youtu.be/tQQbVKYgxqI"
     }
   },
   "insights": [
@@ -1964,6 +1970,114 @@
       "refers_to": "Tháng 5/2026",
       "source": "telegram",
       "created_at": "2026-06-17 15:27"
+    },
+    {
+      "id": "8492b1dde72e62a19e984cf478612780",
+      "video_id": "tQQbVKYgxqI",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "GDP & Tăng trưởng",
+      "content": "Dự báo tăng trưởng GDP của Mỹ trong năm 2026 đã bị các thành viên FOMC điều chỉnh hạ xuống mức 2,2% - 2,3% tại kỳ họp tháng 6, giảm so với kỳ vọng 2,4% - 2,5% trước đó ở kỳ họp tháng 3. Điều này phản ánh quan ngại của Fed về xu hướng tăng trưởng kinh tế toàn cầu chậm lại và rủi ro bất định ngày càng gia tăng.",
+      "impact": "Tiêu cực",
+      "region": "Mỹ",
+      "video_timestamp": "03:17",
+      "video_url_at": "https://youtu.be/tQQbVKYgxqI?t=197",
+      "video_title": "5 ĐIỂM NHẤN VÀ TÍN HIỆU DIỀU HÂU, KỶ NGUYÊN MỚI KEVIN WARSH, ÁP LỰC LÃI SUẤT & TỶ GIÁ CHO VIỆT NAM",
+      "video_url": "https://youtu.be/tQQbVKYgxqI",
+      "posted_at": "2026-06-18",
+      "refers_to": "Năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-19 04:29"
+    },
+    {
+      "id": "b3d0c90cba0543f0ef4e0699e01573e6",
+      "video_id": "tQQbVKYgxqI",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Lạm phát",
+      "content": "Dự báo chỉ số lạm phát PCE toàn phần của Mỹ trong năm 2026 đã được nâng mạnh lên vùng 3,5% - 3,6% tại kỳ họp tháng 6, tăng đáng kể so với mức dự báo 2,7% - 2,8% ghi nhận vào kỳ họp tháng 3. Cú sốc cung ứng từ cuộc xung đột Trung Đông kéo theo giá năng lượng leo thang được xem là nguyên nhân cốt lõi khiến áp lực lạm phát tiếp tục duy trì ở mức cao.",
+      "impact": "Tiêu cực",
+      "region": "Mỹ",
+      "video_timestamp": "05:50",
+      "video_url_at": "https://youtu.be/tQQbVKYgxqI?t=350",
+      "video_title": "5 ĐIỂM NHẤN VÀ TÍN HIỆU DIỀU HÂU, KỶ NGUYÊN MỚI KEVIN WARSH, ÁP LỰC LÃI SUẤT & TỶ GIÁ CHO VIỆT NAM",
+      "video_url": "https://youtu.be/tQQbVKYgxqI",
+      "posted_at": "2026-06-18",
+      "refers_to": "Năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-19 04:29"
+    },
+    {
+      "id": "d4347b99a7618fdf0c6997c274e5b9cd",
+      "video_id": "tQQbVKYgxqI",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Lạm phát",
+      "content": "Dự báo chỉ số lạm phát PCE lõi năm 2026 của Mỹ cũng được điều chỉnh tăng mạnh lên mức 3,3% - 3,4% tại kỳ họp tháng 6, cao hơn rất nhiều so với mức dự phóng 2,5% - 2,8% trước đó. Số liệu này chứng minh áp lực lạm phát đã thực sự thấm sâu vào cấu trúc nội tại của nền kinh tế chứ không còn dừng lại ở biến động năng lượng tạm thời.",
+      "impact": "Tiêu cực",
+      "region": "Mỹ",
+      "video_timestamp": "07:13",
+      "video_url_at": "https://youtu.be/tQQbVKYgxqI?t=433",
+      "video_title": "5 ĐIỂM NHẤN VÀ TÍN HIỆU DIỀU HÂU, KỶ NGUYÊN MỚI KEVIN WARSH, ÁP LỰC LÃI SUẤT & TỶ GIÁ CHO VIỆT NAM",
+      "video_url": "https://youtu.be/tQQbVKYgxqI",
+      "posted_at": "2026-06-18",
+      "refers_to": "Năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-19 04:29"
+    },
+    {
+      "id": "dfdf586347bed4f365f94b2eae170eae",
+      "video_id": "tQQbVKYgxqI",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Tỷ giá",
+      "content": "Biểu đồ Dot plot của Fed tại kỳ họp tháng 6/2026 đã chuyển hướng diều hâu rõ rệt khi nâng mức lãi suất trung vị kỳ vọng lên mốc 4,0% vào cuối năm. Thị trường hiện đang chuyển trạng thái định giá lại và đặt cược vào một đợt tăng lãi suất điều hành tiếp theo dự kiến vào tháng 12/2026 thay vì lộ trình cắt giảm như kỳ vọng đầu năm.",
+      "impact": "Tiêu cực",
+      "region": "Mỹ",
+      "video_timestamp": "11:43",
+      "video_url_at": "https://youtu.be/tQQbVKYgxqI?t=703",
+      "video_title": "5 ĐIỂM NHẤN VÀ TÍN HIỆU DIỀU HÂU, KỶ NGUYÊN MỚI KEVIN WARSH, ÁP LỰC LÃI SUẤT & TỶ GIÁ CHO VIỆT NAM",
+      "video_url": "https://youtu.be/tQQbVKYgxqI",
+      "posted_at": "2026-06-18",
+      "refers_to": "Cuối năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-19 04:29"
+    },
+    {
+      "id": "2d6ae58332708f4ae284b41477609d4c",
+      "video_id": "tQQbVKYgxqI",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Tỷ giá",
+      "content": "Mặc dù chênh lệch lãi suất liên ngân hàng qua đêm duy trì trên mức 6% đang hỗ trợ tỷ giá ổn định trong ngắn hạn, áp lực tỷ giá USDVND dự báo sẽ gia tăng mạnh mẽ vào cuối năm 2026 theo nguyên lý bộ ba bất khả thi nếu Fed nâng lãi suất. Việc khối ngoại liên tục rút ròng cùng trạng thái nhập siêu kéo dài sẽ làm mỏng dần các lợi thế kỹ thuật hỗ trợ đồng nội tệ.",
+      "impact": "Tiêu cực",
+      "region": "Việt Nam",
+      "video_timestamp": "17:14",
+      "video_url_at": "https://youtu.be/tQQbVKYgxqI?t=1034",
+      "video_title": "5 ĐIỂM NHẤN VÀ TÍN HIỆU DIỀU HÂU, KỶ NGUYÊN MỚI KEVIN WARSH, ÁP LỰC LÃI SUẤT & TỶ GIÁ CHO VIỆT NAM",
+      "video_url": "https://youtu.be/tQQbVKYgxqI",
+      "posted_at": "2026-06-18",
+      "refers_to": "Cuối năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-19 04:29"
+    },
+    {
+      "id": "7487937b39d03708fc3f024c8b2242b4",
+      "video_id": "tQQbVKYgxqI",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Mặt bằng lãi suất huy động của các ngân hàng thương mại Việt Nam dự báo sẽ tiếp tục duy trì ở mức cao và rất khó giảm sâu dưới sức ép thắt chặt từ môi trường quốc tế. Việc lợi suất trái phiếu Chính phủ kỳ hạn dài liên tục neo cao ở mốc 4,5% phản ánh trạng thái thanh khoản dòng vốn hệ thống vẫn còn tương đối căng thẳng.",
+      "impact": "Trung lập",
+      "region": "Việt Nam",
+      "video_timestamp": "18:10",
+      "video_url_at": "https://youtu.be/tQQbVKYgxqI?t=1090",
+      "video_title": "5 ĐIỂM NHẤN VÀ TÍN HIỆU DIỀU HÂU, KỶ NGUYÊN MỚI KEVIN WARSH, ÁP LỰC LÃI SUẤT & TỶ GIÁ CHO VIỆT NAM",
+      "video_url": "https://youtu.be/tQQbVKYgxqI",
+      "posted_at": "2026-06-18",
+      "refers_to": "Năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-19 04:29"
     }
   ]
 }
