@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-19 04:29 (telegram)",
+  "updated_at": "2026-06-22 07:22 (telegram)",
   "videos": {
     "RPJ9K0VjIdY": {
       "channel": "(thủ công)",
@@ -114,6 +114,12 @@
       "title": "5 ĐIỂM NHẤN VÀ TÍN HIỆU DIỀU HÂU, KỶ NGUYÊN MỚI KEVIN WARSH, ÁP LỰC LÃI SUẤT & TỶ GIÁ CHO VIỆT NAM",
       "published": "2026-06-18",
       "url": "https://youtu.be/tQQbVKYgxqI"
+    },
+    "fOFsLcUtAmU": {
+      "channel": "Lãng tử buôn nước mắm",
+      "title": "Nới lỏng tiền tệ nửa cuối 2026 sẽ rất khác so với quá khứ",
+      "published": "2026-06-21",
+      "url": "https://youtu.be/fOFsLcUtAmU"
     }
   },
   "insights": [
@@ -2078,6 +2084,60 @@
       "refers_to": "Năm 2026",
       "source": "telegram",
       "created_at": "2026-06-19 04:29"
+    },
+    {
+      "id": "e633b5b638d01fb5138486131c5294ae",
+      "video_id": "fOFsLcUtAmU",
+      "channel": "Lãng tử buôn nước mắm",
+      "expert": "Lãng tử buôn nước mắm",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Mục tiêu tăng trưởng tín dụng năm 2026 được Ngân hàng Nhà nước quy định ở mức 15%, thấp hơn so với mức thực hiện thực tế 19% của năm ngoái. Dự báo nửa cuối năm 2026, lượng tiền bơm ra nền kinh tế vẫn duy trì tương đương cùng kỳ nhưng áp lực huy động sẽ tiếp tục căng thẳng. Do đó, nền lãi suất huy động và cho vay được dự báo sẽ khó hạ và tiếp tục duy trì ở mức cao.",
+      "impact": "Trung lập",
+      "region": "Việt Nam",
+      "video_timestamp": "00:03:10",
+      "video_url_at": "https://youtu.be/fOFsLcUtAmU?t=190",
+      "video_title": "Nới lỏng tiền tệ nửa cuối 2026 sẽ rất khác so với quá khứ",
+      "video_url": "https://youtu.be/fOFsLcUtAmU",
+      "posted_at": "2026-06-21",
+      "refers_to": "Năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-22 07:22"
+    },
+    {
+      "id": "ab980e0926861d994e06ad1ec4620e61",
+      "video_id": "fOFsLcUtAmU",
+      "channel": "Lãng tử buôn nước mắm",
+      "expert": "Lãng tử buôn nước mắm",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Ngân hàng Nhà nước đã thay đổi công thức tính tỷ lệ LDR bằng việc cho phép tính trở lại 20% tiền gửi Kho bạc Nhà nước thay vì hạ về 0% như lộ trình đầu năm. Sự điều chỉnh kỹ thuật này giúp giải phóng nguồn vốn khoảng 100.000 tỷ đồng, chủ yếu tại các ngân hàng quốc doanh (Big 4). Nhận định này mang tính tích cực ngắn hạn nhằm giảm bớt sự căng thẳng thanh khoản hệ thống và hạ nhiệt áp lực tăng lãi suất.",
+      "impact": "Tích cực",
+      "region": "Việt Nam",
+      "video_timestamp": "00:08:09",
+      "video_url_at": "https://youtu.be/fOFsLcUtAmU?t=489",
+      "video_title": "Nới lỏng tiền tệ nửa cuối 2026 sẽ rất khác so với quá khứ",
+      "video_url": "https://youtu.be/fOFsLcUtAmU",
+      "posted_at": "2026-06-21",
+      "refers_to": "Tháng 6/2026",
+      "source": "telegram",
+      "created_at": "2026-06-22 07:22"
+    },
+    {
+      "id": "4a4543c89a1b3be0f11d79abde2ec7c5",
+      "video_id": "fOFsLcUtAmU",
+      "channel": "Lãng tử buôn nước mắm",
+      "expert": "Lãng tử buôn nước mắm",
+      "topic": "Lạm phát",
+      "content": "Chỉ số lạm phát tại Việt Nam từ đầu năm đến nay duy trì ở mức rất cao, lên đến hơn 5%. Áp lực lạm phát cao kết hợp với tâm lý đồng tiền mất giá đang khiến người dân e ngại và hạn chế gửi tiền vào hệ thống ngân hàng thương mại. Thay vào đó, dòng tiền dân cư có xu hướng dịch chuyển sang đầu cơ các kênh tài sản khác như ngoại tệ hoặc vàng.",
+      "impact": "Tiêu cực",
+      "region": "Việt Nam",
+      "video_timestamp": "00:16:16",
+      "video_url_at": "https://youtu.be/fOFsLcUtAmU?t=976",
+      "video_title": "Nới lỏng tiền tệ nửa cuối 2026 sẽ rất khác so với quá khứ",
+      "video_url": "https://youtu.be/fOFsLcUtAmU",
+      "posted_at": "2026-06-21",
+      "refers_to": "Tháng 6/2026",
+      "source": "telegram",
+      "created_at": "2026-06-22 07:22"
     }
   ]
 }
