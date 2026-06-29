@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-22 07:22 (telegram)",
+  "updated_at": "2026-06-29 21:36 (telegram)",
   "videos": {
     "RPJ9K0VjIdY": {
       "channel": "(thủ công)",
@@ -120,6 +120,12 @@
       "title": "Nới lỏng tiền tệ nửa cuối 2026 sẽ rất khác so với quá khứ",
       "published": "2026-06-21",
       "url": "https://youtu.be/fOFsLcUtAmU"
+    },
+    "pd613ed826b4a69f": {
+      "channel": "Tài chính & Kinh doanh",
+      "title": "LÃI SUẤT SẼ RA SAO SAU 1/7? | #ĐTDT 29/6/2026",
+      "published": "2026-06-29",
+      "url": "https://www.youtube.com/live/NvUQ7O5_NjY"
     }
   },
   "insights": [
@@ -2138,6 +2144,96 @@
       "refers_to": "Tháng 6/2026",
       "source": "telegram",
       "created_at": "2026-06-22 07:22"
+    },
+    {
+      "id": "66162f5fe62e43d68ae944f28247c3af",
+      "video_id": "pd613ed826b4a69f",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "GDP & Tăng trưởng",
+      "content": "Áp lực tăng trưởng kinh tế hai quý cuối năm 2026 là rất lớn khi mục tiêu đặt ra tại Nghị quyết 168 yêu cầu mức tăng trưởng phải đạt khoảng hơn 11% trong hai quý tiếp theo. Chính phủ và Ngân hàng Nhà nước đang quyết liệt phối hợp các chính sách để hỗ trợ tối đa cho mục tiêu tăng trưởng này.",
+      "impact": "Tích cực",
+      "region": "Việt Nam",
+      "video_timestamp": "",
+      "video_url_at": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "video_title": "LÃI SUẤT SẼ RA SAO SAU 1/7? | #ĐTDT 29/6/2026",
+      "video_url": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "posted_at": "2026-06-29",
+      "refers_to": "6 tháng cuối năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-29 21:36"
+    },
+    {
+      "id": "dfe93dfcd11a2655dbf6b3365069a2f5",
+      "video_id": "pd613ed826b4a69f",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Thông tư 25 nới tỷ lệ sử dụng vốn ngắn hạn cho vay trung dài hạn từ 30% lên 40% có hiệu lực từ 1/7 giúp giảm áp lực huy động vốn ngắn hạn. Điều này giúp các ngân hàng thương mại có dư địa cho vay và không phải cạnh tranh nhau để tăng lãi suất huy động.",
+      "impact": "Tích cực",
+      "region": "Việt Nam",
+      "video_timestamp": "",
+      "video_url_at": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "video_title": "LÃI SUẤT SẼ RA SAO SAU 1/7? | #ĐTDT 29/6/2026",
+      "video_url": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "posted_at": "2026-06-29",
+      "refers_to": "6 tháng cuối năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-29 21:36"
+    },
+    {
+      "id": "da96e15ebf49d26be901795256fd53a8",
+      "video_id": "pd613ed826b4a69f",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Thị trường 1 - Dân cư",
+      "content": "Mặt bằng lãi suất thị trường dân cư và liên ngân hàng sau ngày 1/7 được dự báo sẽ đi ngang hoặc không tăng nữa thay vì tiếp tục xu hướng tăng cao như nửa đầu năm. Mục tiêu cốt lõi của các chính sách mới sau 1/7 là tăng thanh khoản lưu thông để kỳ vọng hạ lãi suất thị trường hỗ trợ nền kinh tế.",
+      "impact": "Tích cực",
+      "region": "Việt Nam",
+      "video_timestamp": "",
+      "video_url_at": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "video_title": "LÃI SUẤT SẼ RA SAO SAU 1/7? | #ĐTDT 29/6/2026",
+      "video_url": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "posted_at": "2026-06-29",
+      "refers_to": "6 tháng cuối năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-29 21:36"
+    },
+    {
+      "id": "0dc200726c927c36ae9a1c5fff944f95",
+      "video_id": "pd613ed826b4a69f",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Chính sách Tài khóa",
+      "content": "Tốc độ giải ngân đầu tư công trong 5 tháng đầu năm 2026 mới chỉ đạt 26% kế hoạch khiến lượng tiền nhàn rỗi tồn đọng tại kho bạc nhà nước ở mức rất lớn (khoảng gần 600.000 tỷ đồng). Kế hoạch giải ngân cả năm nay là hơn 1,1 triệu tỷ đồng và trong 5 năm tới lên đến hơn 8 triệu tỷ đồng.",
+      "impact": "Trung lập",
+      "region": "Việt Nam",
+      "video_timestamp": "",
+      "video_url_at": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "video_title": "LÃI SUẤT SẼ RA SAO SAU 1/7? | #ĐTDT 29/6/2026",
+      "video_url": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "posted_at": "2026-06-29",
+      "refers_to": "Năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-29 21:36"
+    },
+    {
+      "id": "b6c0cb2b188f6c262f08d696633adad5",
+      "video_id": "pd613ed826b4a69f",
+      "channel": "Tài chính & Kinh doanh",
+      "expert": "Nguyễn Minh Tuấn",
+      "topic": "Lạm phát",
+      "content": "Dựa trên mô hình định lượng của AFA Capital, chỉ số lạm phát được dự báo sẽ đạt đỉnh vào đầu tháng 8 nhưng mục tiêu kiểm soát lạm phát dưới mức 4,5% của Chính phủ đề ra cho năm nay sẽ không bị phá vỡ. Giá xăng E10 giảm về mức quanh 19.000 đồng/lít vào cuối năm là yếu tố quan trọng hỗ trợ hạ nhiệt lạm phát.",
+      "impact": "Tích cực",
+      "region": "Việt Nam",
+      "video_timestamp": "",
+      "video_url_at": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "video_title": "LÃI SUẤT SẼ RA SAO SAU 1/7? | #ĐTDT 29/6/2026",
+      "video_url": "https://www.youtube.com/live/NvUQ7O5_NjY",
+      "posted_at": "2026-06-29",
+      "refers_to": "Năm 2026",
+      "source": "telegram",
+      "created_at": "2026-06-29 21:36"
     }
   ]
 }
