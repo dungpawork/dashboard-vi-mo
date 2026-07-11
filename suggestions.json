@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-09 16:05",
+  "updated_at": "2026-07-11 22:43",
   "items": {
     "-35Pxg8RqFU": {
       "title": "MUỐN KHƠI THÔNG DÒNG VỐN, DOANH NGHIỆP PHẢI CHUẨN HÓA QUẢN TRỊ TRƯỚC TIÊN #toancanh #doanhnghiep",
@@ -514,6 +514,45 @@
       "type": "video",
       "topic": "Không phù hợp",
       "status": "gợi ý"
+    },
+    "GAH6wnYMQqs": {
+      "title": "HỆ THỐNG NGÂN HÀNG KHÔNG THỂ CUNG CẤP ĐỦ VỐN CHO NHU CẦU TĂNG TRƯỞNG CHO GIAI ĐOẠN TỚI #toancanh",
+      "channel": "Tài chính & Kinh doanh TV",
+      "published": "2026-07-11",
+      "url": "https://youtu.be/GAH6wnYMQqs",
+      "type": "video",
+      "topic": "Thị trường 1 - Dân cư",
+      "status": "gợi ý",
+      "notified": true
+    },
+    "IERQN8PMR2o": {
+      "title": "QUY HOẠCH TỔNG THỂ TP. HỒ CHÍ MINH: 5 + 5 = 10 | #ĐTDT 10/7/2026",
+      "channel": "Tài chính & Kinh doanh TV",
+      "published": "2026-07-10",
+      "url": "https://youtu.be/IERQN8PMR2o",
+      "type": "video",
+      "topic": "Không phù hợp",
+      "status": "gợi ý"
+    },
+    "PFnBhHaBVJI": {
+      "title": "SỰ MẤT CÂN ĐỐI TRÊN THỊ TRƯỜNG TÀI CHÍNH CỦA VIỆT NAM #toancanh #thitruongtaichinh #vietnam",
+      "channel": "Tài chính & Kinh doanh TV",
+      "published": "2026-07-10",
+      "url": "https://youtu.be/PFnBhHaBVJI",
+      "type": "video",
+      "topic": "Thị trường 1 - Dân cư",
+      "status": "gợi ý",
+      "notified": true
+    },
+    "QLZf7qBdFNA": {
+      "title": "TOÀN CẢNH THỊ TRƯỜNG TÀI CHÍNH: THUẬN LỢI, THÁCH THỨC ĐỂ ĐÁP ỨNG NHU CẦU VỐN TĂNG TRƯỞNG 2 CHỮ SỐ",
+      "channel": "Tài chính & Kinh doanh TV",
+      "published": "2026-07-09",
+      "url": "https://youtu.be/QLZf7qBdFNA",
+      "type": "video",
+      "topic": "Thị trường 1 - Dân cư",
+      "status": "gợi ý",
+      "notified": true
     }
   }
 }
