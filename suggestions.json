@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-16 16:55",
+  "updated_at": "2026-07-16 20:19",
   "items": {
     "-35Pxg8RqFU": {
       "title": "MUỐN KHƠI THÔNG DÒNG VỐN, DOANH NGHIỆP PHẢI CHUẨN HÓA QUẢN TRỊ TRƯỚC TIÊN #toancanh #doanhnghiep",
@@ -635,6 +635,16 @@
       "type": "video",
       "topic": "Không phù hợp",
       "status": "gợi ý"
+    },
+    "SucnHItEaIo": {
+      "title": "VẤN ĐỀ CỦA THỊ TRƯỜNG TRÁI PHIẾU CHÍNH PHỦ #traiphieuchinhphu #toancanh #taichinh",
+      "channel": "Tài chính & Kinh doanh TV",
+      "published": "2026-07-16",
+      "url": "https://youtu.be/SucnHItEaIo",
+      "type": "video",
+      "topic": "Chính sách Tài khóa",
+      "status": "gợi ý",
+      "notified": true
     }
   }
 }
